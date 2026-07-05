@@ -2,180 +2,334 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Detector de Plagio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
     <style>
+      :root {
+        --bg-1: #0f1729;
+        --bg-2: #1a2340;
+        --accent: #6366f1;
+        --accent-2: #8b5cf6;
+        --accent-glow: rgba(99, 102, 241, 0.35);
+        --text-main: #e8ecf7;
+        --text-muted: #9aa4c0;
+        --card-bg: rgba(255, 255, 255, 0.06);
+        --card-border: rgba(255, 255, 255, 0.12);
+        --danger: #f87171;
+        --warn: #fbbf24;
+        --ok: #34d399;
+        --radius: 18px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
-        background: #f4f6f9;
+        font-family:
+          "Inter",
+          -apple-system,
+          sans-serif;
+        background:
+          radial-gradient(circle at 20% 0%, #1e2a4f 0%, var(--bg-1) 55%),
+          radial-gradient(circle at 90% 90%, #2a1e4f33 0%, transparent 60%);
+        background-color: var(--bg-1);
+        color: var(--text-main);
+        min-height: 100vh;
       }
-      .card {
+
+      .hero {
+        text-align: center;
+        padding: 4rem 1rem 2.5rem;
+      }
+      .hero .badge-eyebrow {
+        display: inline-block;
+        padding: 0.35rem 0.9rem;
+        border-radius: 999px;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        color: var(--accent-2);
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        margin-bottom: 1.2rem;
+      }
+      .hero h1 {
+        font-weight: 800;
+        font-size: clamp(2rem, 4.5vw, 3rem);
+        background: linear-gradient(135deg, #fff 20%, #b6c2f0 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        letter-spacing: -0.02em;
+      }
+      .hero p {
+        color: var(--text-muted);
+        font-size: 1.05rem;
+        max-width: 560px;
+        margin: 0.75rem auto 0;
+      }
+      .glass-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5);
+      }
+      .upload-zone {
+        display: block;
+        width: 100%;
+        border: 2px dashed var(--card-border);
         border-radius: 14px;
+        padding: 2.2rem 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition:
+          border-color 0.2s ease,
+          background 0.2s ease;
+        background: rgba(255, 255, 255, 0.02);
       }
-      .badge-high {
-        background: #dc3545;
+      .upload-zone:hover,
+      .upload-zone.dragover {
+        border-color: var(--accent);
+        background: rgba(99, 102, 241, 0.08);
       }
-      .badge-mid {
-        background: #fd7e14;
+      .upload-zone svg {
+        color: var(--accent-2);
+        margin-bottom: 0.5rem;
       }
-      .badge-low {
-        background: #198754;
+      .upload-zone .file-name {
+        margin-top: 0.6rem;
+        font-size: 0.9rem;
+        color: var(--text-main);
+        font-weight: 600;
+        word-break: break-all;
       }
-      .spinner-wrap {
+      #document {
         display: none;
       }
-      .frase-box {
-        background: #f8f9fa;
-        border-left: 4px solid #0d6efd;
-        padding: 0.6rem 0.8rem;
+      .form-label {
+        color: var(--text-muted);
+        font-weight: 500;
+        font-size: 0.9rem;
+      }
+      .algo-select {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--card-border);
+        color: var(--text-main);
+        border-radius: 10px;
+        padding: 0.55rem 0.8rem;
+        font-size: 0.9rem;
+      }
+      .algo-select:focus {
+        background-color: rgba(255, 255, 255, 0.08);
+        border-color: var(--accent);
+        color: var(--text-main);
+        box-shadow: 0 0 0 0.2rem var(--accent-glow);
+      }
+      .algo-select option {
+        background-color: var(--bg-2);
+        color: var(--text-main);
+      }
+      .algo-hint {
+        color: var(--text-muted);
+        font-size: 0.78rem;
         margin-top: 0.4rem;
-        border-radius: 6px;
+      }
+      .form-range::-webkit-slider-thumb {
+        background: var(--accent);
+      }
+      .form-range::-moz-range-thumb {
+        background: var(--accent);
+      }
+      .form-range::-webkit-slider-runnable-track {
+        background: rgba(255, 255, 255, 0.15);
+      }
+      .btn-gradient {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        border: none;
+        color: #fff;
+        font-weight: 700;
+        padding: 0.8rem 1.5rem;
+        border-radius: 12px;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease;
+        box-shadow: 0 10px 30px -10px var(--accent-glow);
+      }
+      .btn-gradient:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 34px -8px var(--accent-glow);
+        color: #fff;
+      }
+      .btn-gradient:disabled {
+        opacity: 0.6;
+        transform: none;
+      }
+      .progress-custom {
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+      .progress-custom .bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        border-radius: 999px;
+        transition: width 0.4s ease;
+      }
+      .alert-custom {
+        border-radius: 12px;
+        border: 1px solid rgba(248, 113, 113, 0.35);
+        background: rgba(248, 113, 113, 0.1);
+        color: #fecaca;
+        font-size: 0.9rem;
+      }
+      footer.credit {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        padding: 2rem 0 1rem;
+      }
+      .container-narrow {
+        max-width: 640px !important;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      ::selection {
+        background: var(--accent-glow);
       }
     </style>
   </head>
   <body>
-    <div class="container py-5">
-      <div class="text-center mb-4">
-        <h1 class="fw-bold">Detector de Plagio</h1>
-        <p class="text-muted">
-          Sube un documento (.docx, .pdf, .txt) y compara su contenido con la
-          web.
-        </p>
-      </div>
+    <div class="hero">
+      <span class="badge-eyebrow">Analisis inteligente de similitud</span>
+      <h1>Detector de Plagio</h1>
+      <p>
+        Sube tu documento y lo compararemos con contenido publicado en la web
+        usando TF-IDF, n-gramas y fingerprinting.
+      </p>
+    </div>
 
-      <div class="card shadow-sm mx-auto" style="max-width: 640px">
-        <div class="card-body p-4">
-          <form id="scanForm">
-            <div class="mb-3">
-              <label class="form-label">Documento</label>
-              <input
-                class="form-control"
-                type="file"
-                id="document"
-                name="document"
-                accept=".pdf,.docx,.txt"
-                required
-              />
+    <div class="container-narrow px-3 pb-5">
+      <div class="glass-card p-4 p-md-5">
+        <form id="scanForm" novalidate>
+          <label class="upload-zone" id="uploadZone" for="document">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="34"
+              height="34"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              <polyline points="7 9 12 4 17 9" />
+              <line x1="12" y1="4" x2="12" y2="16" />
+            </svg>
+            <div style="font-weight: 600">
+              Haz clic o arrastra tu archivo aqui
             </div>
-            <button type="submit" class="btn btn-primary w-100" id="submitBtn">
-              Analizar documento
-            </button>
-          </form>
-          <div class="spinner-wrap text-center mt-3" id="spinnerWrap">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 mb-0 text-muted">
-              Buscando y comparando contenido, esto puede tardar unos
-              segundos...
-            </p>
-          </div>
-          <div id="errorBox" class="alert alert-danger mt-3 d-none"></div>
-        </div>
-      </div>
+            <div
+              style="
+                color: var(--text-muted);
+                font-size: 0.82rem;
+                margin-top: 2px;
+              "
+            >
+              Formatos: PDF, DOCX o TXT · Maximo 15 MB
+            </div>
+            <div class="file-name" id="fileNameDisplay"></div>
+          </label>
+          <input
+            type="file"
+            id="document"
+            name="document"
+            accept=".pdf,.docx,.txt"
+            required
+          />
 
-      <div
-        id="resultsWrap"
-        class="mx-auto mt-4 d-none"
-        style="max-width: 900px"
-      >
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h4 class="mb-0">Resultados</h4>
-          <div>
-            <span class="me-2"
-              >Similitud global: <strong id="globalScore">0%</strong></span
-            >
-            <a
-              href="/api/report/pdf"
-              class="btn btn-outline-secondary btn-sm"
-              id="pdfBtn"
-              >Descargar PDF</a
-            >
+          <div class="mt-4 mb-4">
+            <label class="form-label d-flex justify-content-between">
+              <span>Umbral de similitud minimo</span>
+              <span style="color: var(--text-main); font-weight: 700"
+                ><span id="umbralValue">5</span>%</span
+              >
+            </label>
+            <input
+              type="range"
+              class="form-range"
+              id="umbral"
+              name="umbral"
+              min="1"
+              max="80"
+              value="5"
+            />
           </div>
+
+          <div class="mb-4">
+            <label class="form-label" for="algoritmo"
+              >Algoritmo de deteccion</label
+            >
+            <select
+              class="form-select algo-select"
+              id="algoritmo"
+              name="algoritmo"
+            >
+              <option value="combinado" selected>
+                Combinado (recomendado)
+              </option>
+              <option value="tfidf">Solo TF-IDF (similitud tematica)</option>
+              <option value="ngramas">Solo N-gramas (parafraseo)</option>
+              <option value="shingling">Solo Shingling (copia exacta)</option>
+            </select>
+            <div class="algo-hint" id="algoHint">
+              Combina las 3 senales para el resultado mas equilibrado.
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-gradient w-100" id="submitBtn">
+            Analizar documento
+          </button>
+        </form>
+
+        <div class="mt-4" id="spinnerWrap" style="display: none">
+          <div class="progress-custom mb-2">
+            <div class="bar" id="progressBar" style="width: 5%"></div>
+          </div>
+          <p
+            class="mb-0 text-center"
+            style="color: var(--text-muted); font-size: 0.85rem"
+            id="progressMsg"
+          >
+            Iniciando...
+          </p>
         </div>
-        <div id="resultsList"></div>
+
+        <div id="errorBox" class="alert-custom p-3 mt-3 d-none"></div>
       </div>
     </div>
 
-    <script>
-      const form = document.getElementById("scanForm");
-      const spinnerWrap = document.getElementById("spinnerWrap");
-      const submitBtn = document.getElementById("submitBtn");
-      const errorBox = document.getElementById("errorBox");
-      const resultsWrap = document.getElementById("resultsWrap");
-      const resultsList = document.getElementById("resultsList");
-      const globalScore = document.getElementById("globalScore");
+    <footer class="credit">
+      Deteccion basada en TF-IDF, n-gramas y fingerprinting de shingles.
+    </footer>
 
-      function badgeClass(score) {
-        if (score >= 50) return "badge-high";
-        if (score >= 20) return "badge-mid";
-        return "badge-low";
-      }
-
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        errorBox.classList.add("d-none");
-        resultsWrap.classList.add("d-none");
-        resultsList.innerHTML = "";
-        spinnerWrap.style.display = "block";
-        submitBtn.disabled = true;
-
-        const fileInput = document.getElementById("document");
-        const formData = new FormData();
-        formData.append("document", fileInput.files[0]);
-
-        try {
-          const res = await fetch("/api/scan", {
-            method: "POST",
-            body: formData,
-          });
-          const data = await res.json();
-
-          if (!res.ok) {
-            throw new Error(data.error || "Error desconocido");
-          }
-
-          globalScore.textContent = data.similitud_global + "%";
-
-          if (data.resultados.length === 0) {
-            resultsList.innerHTML =
-              '<div class="alert alert-success">No se encontraron coincidencias significativas.</div>';
-          } else {
-            data.resultados.forEach((r) => {
-              const card = document.createElement("div");
-              card.className = "card shadow-sm mb-3";
-              let frasesHtml = "";
-              (r.frases_similares || []).forEach((f) => {
-                frasesHtml += `<div class="frase-box">
-            <div><strong>Tu texto:</strong> ${f.frase_original}</div>
-            <div class="text-muted"><strong>Fuente web:</strong> ${f.frase_web || "N/A"}</div>
-            <div class="small text-primary">Coincidencia: ${f.coincidencia}%</div>
-          </div>`;
-              });
-              card.innerHTML = `
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <a href="${r.url}" target="_blank" rel="noopener">${r.url}</a>
-                <div class="text-muted small mt-1">Consulta: "${r.consulta}"</div>
-              </div>
-              <span class="badge ${badgeClass(r.similitud)}">${r.similitud}%</span>
-            </div>
-            ${frasesHtml}
-          </div>`;
-              resultsList.appendChild(card);
-            });
-          }
-
-          resultsWrap.classList.remove("d-none");
-        } catch (err) {
-          errorBox.textContent = err.message;
-          errorBox.classList.remove("d-none");
-        } finally {
-          spinnerWrap.style.display = "none";
-          submitBtn.disabled = false;
-        }
-      });
-    </script>
+    <!-- FIX (seguridad/funcionalidad): script movido a fichero estatico
+         propio (self), en vez de inline, para cumplir la CSP script-src
+         'self' sin necesitar 'unsafe-inline' y sin romper el formulario. -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   </body>
 </html>
