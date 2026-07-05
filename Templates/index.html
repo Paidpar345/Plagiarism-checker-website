@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Detector de Plagio</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background: #f4f6f9;
+      }
+      .card {
+        border-radius: 14px;
+      }
+      .badge-high {
+        background: #dc3545;
+      }
+      .badge-mid {
+        background: #fd7e14;
+      }
+      .badge-low {
+        background: #198754;
+      }
+      .spinner-wrap {
+        display: none;
+      }
+      .frase-box {
+        background: #f8f9fa;
+        border-left: 4px solid #0d6efd;
+        padding: 0.6rem 0.8rem;
+        margin-top: 0.4rem;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container py-5">
+      <div class="text-center mb-4">
+        <h1 class="fw-bold">Detector de Plagio</h1>
+        <p class="text-muted">
+          Sube un documento (.docx, .pdf, .txt) y compara su contenido con la
+          web.
+        </p>
+      </div>
+
+      <div class="card shadow-sm mx-auto" style="max-width: 640px">
+        <div class="card-body p-4">
+          <form id="scanForm">
+            <div class="mb-3">
+              <label class="form-label">Documento</label>
+              <input
+                class="form-control"
+                type="file"
+                id="document"
+                name="document"
+                accept=".pdf,.docx,.txt"
+                required
+              />
+            </div>
+            <button type="submit" class="btn btn-primary w-100" id="submitBtn">
+              Analizar documento
+            </button>
+          </form>
+          <div class="spinner-wrap text-center mt-3" id="spinnerWrap">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 mb-0 text-muted">
+              Buscando y comparando contenido, esto puede tardar unos
+              segundos...
+            </p>
+          </div>
+          <div id="errorBox" class="alert alert-danger mt-3 d-none"></div>
+        </div>
+      </div>
+
+      <div
+        id="resultsWrap"
+        class="mx-auto mt-4 d-none"
+        style="max-width: 900px"
+      >
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4 class="mb-0">Resultados</h4>
+          <div>
+            <span class="me-2"
+              >Similitud global: <strong id="globalScore">0%</strong></span
+            >
+            <a
+              href="/api/report/pdf"
+              class="btn btn-outline-secondary btn-sm"
+              id="pdfBtn"
+              >Descargar PDF</a
+            >
+          </div>
+        </div>
+        <div id="resultsList"></div>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById("scanForm");
+      const spinnerWrap = document.getElementById("spinnerWrap");
+      const submitBtn = document.getElementById("submitBtn");
+      const errorBox = document.getElementById("errorBox");
+      const resultsWrap = document.getElementById("resultsWrap");
+      const resultsList = document.getElementById("resultsList");
+      const globalScore = document.getElementById("globalScore");
+
+      function badgeClass(score) {
+        if (score >= 50) return "badge-high";
+        if (score >= 20) return "badge-mid";
+        return "badge-low";
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        errorBox.classList.add("d-none");
+        resultsWrap.classList.add("d-none");
+        resultsList.innerHTML = "";
+        spinnerWrap.style.display = "block";
+        submitBtn.disabled = true;
+
+        const fileInput = document.getElementById("document");
+        const formData = new FormData();
+        formData.append("document", fileInput.files[0]);
+
+        try {
+          const res = await fetch("/api/scan", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || "Error desconocido");
+          }
+
+          globalScore.textContent = data.similitud_global + "%";
+
+          if (data.resultados.length === 0) {
+            resultsList.innerHTML =
+              '<div class="alert alert-success">No se encontraron coincidencias significativas.</div>';
+          } else {
+            data.resultados.forEach((r) => {
+              const card = document.createElement("div");
+              card.className = "card shadow-sm mb-3";
+              let frasesHtml = "";
+              (r.frases_similares || []).forEach((f) => {
+                frasesHtml += `<div class="frase-box">
+            <div><strong>Tu texto:</strong> ${f.frase_original}</div>
+            <div class="text-muted"><strong>Fuente web:</strong> ${f.frase_web || "N/A"}</div>
+            <div class="small text-primary">Coincidencia: ${f.coincidencia}%</div>
+          </div>`;
+              });
+              card.innerHTML = `
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <a href="${r.url}" target="_blank" rel="noopener">${r.url}</a>
+                <div class="text-muted small mt-1">Consulta: "${r.consulta}"</div>
+              </div>
+              <span class="badge ${badgeClass(r.similitud)}">${r.similitud}%</span>
+            </div>
+            ${frasesHtml}
+          </div>`;
+              resultsList.appendChild(card);
+            });
+          }
+
+          resultsWrap.classList.remove("d-none");
+        } catch (err) {
+          errorBox.textContent = err.message;
+          errorBox.classList.remove("d-none");
+        } finally {
+          spinnerWrap.style.display = "none";
+          submitBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
