@@ -69,7 +69,7 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
         # URL en un diccionario para reutilizarlo tanto en el calculo del
         # IDF como en el scoring, evitando el doble scraping anterior.
         scraped_by_url = {}
-        with ThreadPoolExecutor(max_workers=8) as executor:
+        with ThreadPoolExecutor(max_workers=4) as executor:
             futures_scrape = {executor.submit(scrape_and_clean_url, url): url for url, _ in all_url_tasks}
             for fut in as_completed(futures_scrape):
                 url = futures_scrape[fut]
@@ -100,7 +100,7 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
         # solo por simplicidad de despliegue (evitar pickling de closures con
         # ProcessPoolExecutor), pero ya no hace I/O duplicado, que era el
         # cuello de botella real.
-        with ThreadPoolExecutor(max_workers=8) as executor:
+        with ThreadPoolExecutor(max_workers=4) as executor:
             futures = [
                 executor.submit(
                     _score_only, url, texto_documento, consulta, scraped_by_url[url], idf, umbral, algoritmo

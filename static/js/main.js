@@ -128,7 +128,7 @@ function pollJobStatus(jobId) {
       clearInterval(interval);
       showError("Se perdio la conexion con el servidor. Intentalo de nuevo.");
     }
-  }, 1500);
+  }, 3000);
 }
 
 form.addEventListener("submit", async (e) => {

@@ -232,6 +232,18 @@
                 <span
                   class="badge {% if r.similitud >= 50 %}bg-danger{% elif r.similitud >= 20 %}bg-warning text-dark{% else %}bg-success{% endif %} fs-6 px-3 py-2 rounded-pill"
                 >
+                  <span class="badge badge-metric text-light border"
+                    >TF-IDF: {{ r.similitud_tfidf }}%</span
+                  >
+                  <span class="badge badge-metric text-light border"
+                    >N-gramas: {{ r.similitud_ngramas }}%</span
+                  >
+                  <span class="badge badge-metric text-light border"
+                    >Shingling: {{ r.similitud_shingling }}%</span
+                  ><span
+                    class="badge badge-metric text-light border bg-primary border-primary"
+                    >IA Semántica: {{ r.similitud_semantica }}%</span
+                  >
                   Similitud: {{ r.similitud }}%
                 </span>
               </div>

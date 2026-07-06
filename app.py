@@ -215,6 +215,7 @@ def _authorize_job(job_id):
 
 
 @app.route("/api/scan/status/<job_id>", methods=["GET"])
+@limiter.exempt
 def scan_status(job_id):
     job, err = _authorize_job(job_id)
     if err:

@@ -4,6 +4,14 @@ import hashlib
 import unicodedata
 from collections import Counter
 
+# NUEVAS IMPORTACIONES PARA NLP
+import torch
+from sentence_transformers import SentenceTransformer, util
+
+# Carga del modelo NLP en memoria (se hace una sola vez al iniciar el worker).
+# Usamos un modelo multilingüe ligero y muy rápido.
+nlp_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+
 STOP_WORDS = {
     "el", "la", "los", "las", "un", "una", "unos", "unas", "de", "del", "al", "y", "o",
     "en", "para", "por", "que", "con", "su", "sus", "es", "son", "lo", "como", "mas",
@@ -118,12 +126,28 @@ def shingle_overlap_ratio(text_a, text_b, k=None):
     return round((len(intersection) / smaller) * 100, 2) if smaller else 0.0
 
 
+def semantic_similarity(text_a, text_b):
+    """Calcula la similitud de significado entre dos textos usando Inteligencia Artificial."""
+    if not text_a.strip() or not text_b.strip():
+        return 0.0
+    
+    # El modelo convierte los textos en vectores (embeddings)
+    embedding_a = nlp_model.encode(text_a, convert_to_tensor=True)
+    embedding_b = nlp_model.encode(text_b, convert_to_tensor=True)
+    
+    # Comparamos los vectores usando Similitud Coseno
+    cosine_score = util.cos_sim(embedding_a, embedding_b)
+    
+    # Extraemos el valor y lo convertimos a porcentaje
+    return round(cosine_score.item() * 100, 2)
+
+
 def _split_sentences(text):
     return [s.strip() for s in re.split(r"(?<=[.!?])\s+|\n+", text) if len(s.strip()) > 20]
 
 
 ALGORITHM_CHOICES = {
-    "combinado": "Combinado (TF-IDF + N-gramas + Shingling)",
+    "combinado": "Combinado (IA Semántica + TF-IDF + N-gramas + Shingling)",
     "tfidf": "Solo TF-IDF (similitud tematica)",
     "ngramas": "Solo N-gramas (deteccion de parafraseo)",
     "shingling": "Solo Shingling (copia exacta / fingerprinting)",
@@ -131,16 +155,16 @@ ALGORITHM_CHOICES = {
 
 
 def calculate_similarity_report(text_a, text_b, idf=None, top_n_matches=3, algoritmo="combinado"):
-    """Calcula la similitud segun el algoritmo elegido por el usuario:
-    - 'combinado': promedio ponderado de las 3 senales (recomendado, mas robusto)
-    - 'tfidf': solo similitud tematica ponderada por rareza de palabras
-    - 'ngramas': solo deteccion de parafraseo con reordenamiento local
-    - 'shingling': solo deteccion de copia exacta/casi exacta (fingerprinting)
-    Siempre se calculan las 3 metricas para mostrarlas desglosadas, pero el
-    score principal ('similitud') varia segun el algoritmo seleccionado."""
+    """
+    Calcula la similitud integrando IA semántica para detectar paráfrasis profunda
+    y engaños por sinónimos o traducciones.
+    """
     tfidf_score = tfidf_cosine_similarity(text_a, text_b, idf=idf)
     ngram_score = ngram_similarity(text_a, text_b, n=4)
     shingle_score = shingle_overlap_ratio(text_a, text_b)
+    
+    # Calculamos la similitud semántica general
+    semantic_score = semantic_similarity(text_a, text_b)
 
     if algoritmo == "tfidf":
         combined_score = tfidf_score
@@ -149,8 +173,10 @@ def calculate_similarity_report(text_a, text_b, idf=None, top_n_matches=3, algor
     elif algoritmo == "shingling":
         combined_score = shingle_score
     else:
+        # Ponderación del algoritmo combinado:
+        # IA Semántica (40%), N-gramas (25%), Shingling (20%), TF-IDF (15%)
         combined_score = round(
-            (tfidf_score * 0.4) + (ngram_score * 0.25) + (shingle_score * 0.35), 2
+            (semantic_score * 0.40) + (tfidf_score * 0.15) + (ngram_score * 0.25) + (shingle_score * 0.20), 2
         )
 
     sentences_a = _split_sentences(text_a)
@@ -159,22 +185,29 @@ def calculate_similarity_report(text_a, text_b, idf=None, top_n_matches=3, algor
     matches = []
     if sentences_a and sentences_b:
         sample_b = sentences_b[:80]
+        # Codificamos todas las frases de la web de golpe por eficiencia de la CPU/GPU
+        embeddings_b = nlp_model.encode(sample_b, convert_to_tensor=True)
+        
         for sa in sentences_a[:80]:
             tokens_sa = clean_and_tokenize(sa)
             if not tokens_sa:
                 continue
-            best_score = 0.0
-            best_sentence_b = None
-            for sb in sample_b:
-                tokens_sb = clean_and_tokenize(sb)
-                score = cosine_raw(_vectorize(tokens_sa), _vectorize(tokens_sb))
-                if score > best_score:
-                    best_score = score
-                    best_sentence_b = sb
-            if best_score > 0.5:
+            
+            # Codificamos la frase del documento evaluado
+            emb_a = nlp_model.encode(sa, convert_to_tensor=True)
+            
+            # Comparamos la frase del usuario contra TODAS las de la web de una sola vez
+            cos_scores = util.cos_sim(emb_a, embeddings_b)[0]
+            
+            # Obtenemos el mejor resultado
+            best_idx = torch.argmax(cos_scores).item()
+            best_score = cos_scores[best_idx].item()
+            
+            # Si el significado coincide en más de un 75%, se marca como plagio probable
+            if best_score > 0.75:
                 matches.append({
                     "frase_original": sa,
-                    "frase_web": best_sentence_b,
+                    "frase_web": sample_b[best_idx],
                     "coincidencia": round(best_score * 100, 2)
                 })
 
@@ -185,6 +218,7 @@ def calculate_similarity_report(text_a, text_b, idf=None, top_n_matches=3, algor
         "similitud_tfidf": tfidf_score,
         "similitud_ngramas": ngram_score,
         "similitud_shingling": shingle_score,
+        "similitud_semantica": semantic_score, # Nueva métrica añadida al diccionario
         "frases_similares": matches[:top_n_matches]
     }
 
