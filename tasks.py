@@ -7,6 +7,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger("plagiarism_checker")
 
+# ── Stage message constants (must match regex in static/js/main.js) ──────────
+# Stage 1 → /subiendo|upload/i
+# Stage 2 → /procesando|extrayendo/i
+# Stage 3 → /buscando|web/i
+# Stage 4 → /generando|informe/i
+MSG_UPLOAD   = "Subiendo documento..."
+MSG_PROCESS  = "Procesando texto y extrayendo frases clave..."
+MSG_SEARCH   = "Buscando coincidencias en la web..."
+MSG_GENERATE = "Generando informe de resultados..."
+
 
 def _score_only(url, texto_documento, consulta, texto_web, idf, umbral, algoritmo):
     # FIX (diseno): esta funcion ya NO vuelve a raspar la URL. El texto
@@ -24,6 +34,7 @@ def _score_only(url, texto_documento, consulta, texto_web, idf, umbral, algoritm
             "similitud_tfidf": report["similitud_tfidf"],
             "similitud_ngramas": report["similitud_ngramas"],
             "similitud_shingling": report["similitud_shingling"],
+            "similitud_semantica": report.get("similitud_semantica", 0),
             "frases_similares": report["frases_similares"]
         }
     return None
@@ -35,19 +46,28 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
     # para que un job nunca quede "colgado" indefinidamente en estado
     # "procesando" si una llamada externa (scrape.do) no responde nunca.
     try:
-        update_job_progress(job_id, "Extrayendo frases clave...")
+        # ── Stage 1: Subiendo ─────────────────────────────────────────────
+        update_job_progress(job_id, MSG_UPLOAD, 0, 4)
+
+        # ── Stage 2: Procesando ──────────────────────────────────────────
+        update_job_progress(job_id, MSG_PROCESS, 1, 4)
         consultas = extract_smart_queries(texto_documento, num_queries=5, randomize=True)
 
         if not consultas:
             fail_job(job_id, "No se pudo extraer contenido legible del documento.")
             return
 
-        update_job_progress(job_id, "Recopilando fuentes en la web...", 0, len(consultas))
+        # ── Stage 3: Buscando ────────────────────────────────────────────
+        update_job_progress(job_id, MSG_SEARCH, 2, 4)
 
         seen_urls = set()
         all_url_tasks = []
         for idx, consulta in enumerate(consultas, start=1):
-            update_job_progress(job_id, f"Buscando consulta {idx} de {len(consultas)}...", idx, len(consultas))
+            update_job_progress(
+                job_id,
+                f"Buscando consulta {idx} de {len(consultas)} en la web...",
+                2, 4
+            )
             urls = search_google(consulta, nb_results=5)
             for url in urls:
                 if url in seen_urls:
@@ -63,7 +83,11 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
             })
             return
 
-        update_job_progress(job_id, f"Analizando {len(all_url_tasks)} paginas encontradas...", 0, len(all_url_tasks))
+        update_job_progress(
+            job_id,
+            f"Analizando {len(all_url_tasks)} páginas encontradas en la web...",
+            2, 4
+        )
 
         # FIX (diseno): unica pasada de scraping. Se guarda el texto de cada
         # URL en un diccionario para reutilizarlo tanto en el calculo del
@@ -94,6 +118,9 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
         resultados_finales = []
         scoring_tasks = [(url, consulta) for url, consulta in all_url_tasks if url in scraped_by_url]
 
+        # ── Stage 4: Generando ───────────────────────────────────────────
+        update_job_progress(job_id, MSG_GENERATE, 3, 4)
+
         # FIX (diseno): el calculo de similitud es CPU-bound (TF-IDF,
         # n-gramas, shingling y comparacion de oraciones); un ThreadPoolExecutor
         # no acelera este trabajo por el GIL. Se mantiene ThreadPoolExecutor
@@ -109,7 +136,11 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
             ]
 
             for i, fut in enumerate(as_completed(futures), start=1):
-                update_job_progress(job_id, f"Comparando pagina {i} de {len(futures)}...", i, len(futures))
+                update_job_progress(
+                    job_id,
+                    f"Generando informe: comparando página {i} de {len(futures)}...",
+                    3, 4
+                )
                 try:
                     res = fut.result()
                     if res:
