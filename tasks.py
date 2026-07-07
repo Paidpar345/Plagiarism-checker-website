@@ -182,5 +182,43 @@ def run_local_corpus_scan(self, job_id, texto_documento, documento_nombre,
             except Exception as e:
                 logger.warning("No se pudo leer archivo de corpus '%s': %s", filename, e)
 
+        # A PARTIR DE AQUÍ COMIENZA EL CÓDIGO COMPLETADO:
         if not corpus_texts:
             complete_job(job_id, {
+                "similitud_global": 0.0,
+                "resultados": [],
+                "documento": documento_nombre
+            })
+            return
+
+        # ── Stage 4: Generando ───────────────────────────────────────────
+        update_job_progress(job_id, MSG_GENERATE, 3, 4)
+
+        # Usamos la función optimizada compare_corpus del similarity_engine
+        resultados_finales = compare_corpus(
+            texto_documento, 
+            corpus_texts, 
+            umbral=umbral, 
+            algoritmo=algoritmo
+        )
+
+        # Calculamos la media de similitud solo si hay resultados, de lo contrario 0.0
+        overall = round(sum(r["similitud"] for r in resultados_finales) / len(resultados_finales), 2) if resultados_finales else 0.0
+
+        complete_job(job_id, {
+            "similitud_global": overall,
+            "resultados": resultados_finales,
+            "documento": documento_nombre
+        })
+
+    except Exception as e:
+        logger.error("Error inesperado en tarea de corpus local %s: %s", job_id, e)
+        fail_job(job_id, "Ocurrió un error inesperado durante la comparación con el corpus. Inténtalo de nuevo.")
+        
+    finally:
+        # Limpieza de privacidad obligatoria (Elimina corpus_dir al terminar)
+        if corpus_dir and os.path.exists(corpus_dir):
+            try:
+                shutil.rmtree(corpus_dir)
+            except Exception as e:
+                logger.error("No se pudo limpiar el directorio temporal de corpus '%s': %s", corpus_dir, e)
