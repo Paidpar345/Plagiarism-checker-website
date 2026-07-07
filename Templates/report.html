@@ -92,6 +92,22 @@
         backdrop-filter: blur(12px);
       }
 
+      /* ── Risk badge ── */
+      .risk-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .risk-alto   { background: rgba(248,113,113,0.15); color: var(--danger); border: 1px solid rgba(248,113,113,0.35); }
+      .risk-medio  { background: rgba(251,191,36,0.12);  color: var(--warn);   border: 1px solid rgba(251,191,36,0.3); }
+      .risk-bajo   { background: rgba(52,211,153,0.1);   color: var(--ok);     border: 1px solid rgba(52,211,153,0.25); }
+
       /* ── Score circle ── */
       .score-wrapper { text-align: center; }
       .score-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.75rem; }
@@ -100,12 +116,18 @@
         border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
         font-size: 2.1rem; font-weight: 800;
-        background: conic-gradient(
-          var(--accent) calc({{ job.resultado.similitud_global | default(0) }} * 1%),
-          rgba(255,255,255,0.08) 0
-        );
         position: relative;
         margin: 0 auto;
+      }
+      /* Dynamic ring colour driven by nivel_riesgo (issue #6) */
+      .score-circle.score-high {
+        background: conic-gradient(var(--danger) calc({{ job.resultado.similitud_global | default(0) }} * 1%), rgba(255,255,255,0.08) 0);
+      }
+      .score-circle.score-mid {
+        background: conic-gradient(var(--warn) calc({{ job.resultado.similitud_global | default(0) }} * 1%), rgba(255,255,255,0.08) 0);
+      }
+      .score-circle.score-low {
+        background: conic-gradient(var(--ok) calc({{ job.resultado.similitud_global | default(0) }} * 1%), rgba(255,255,255,0.08) 0);
       }
       .score-circle::before {
         content: "";
@@ -212,7 +234,7 @@
         color: var(--text-muted);
       }
 
-      /* ── Fragments toggle button (issue #7) ── */
+      /* ── Fragments toggle button ── */
       .btn-frags-toggle {
         display: inline-flex;
         align-items: center;
@@ -233,17 +255,9 @@
         border-color: rgba(99,102,241,0.4);
         color: #fff;
       }
-      .btn-frags-toggle:focus-visible {
-        outline: 2px solid var(--accent);
-        outline-offset: 2px;
-      }
-      .btn-frags-toggle .frag-chevron {
-        transition: transform 0.22s;
-        flex-shrink: 0;
-      }
-      .btn-frags-toggle[aria-expanded="true"] .frag-chevron {
-        transform: rotate(180deg);
-      }
+      .btn-frags-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .btn-frags-toggle .frag-chevron { transition: transform 0.22s; flex-shrink: 0; }
+      .btn-frags-toggle[aria-expanded="true"] .frag-chevron { transform: rotate(180deg); }
 
       /* ── Phrase boxes ── */
       .phrase-box {
@@ -268,10 +282,7 @@
       }
 
       /* ── Empty state ── */
-      .empty-state {
-        text-align: center;
-        padding: 3rem 1rem;
-      }
+      .empty-state { text-align: center; padding: 3rem 1rem; }
       .empty-icon {
         width: 64px; height: 64px;
         border-radius: 50%;
@@ -329,18 +340,46 @@
         <div class="glass-card p-4 p-md-5 mb-4">
           <div class="row align-items-center g-4">
             <div class="col-md-8">
-              <p class="text-uppercase fw-bold mb-1" style="font-size:0.7rem;letter-spacing:0.1em;color:var(--text-muted)">Informe de resultados</p>
+              <p class="text-uppercase fw-bold mb-2" style="font-size:0.7rem;letter-spacing:0.1em;color:var(--text-muted)">Informe de resultados</p>
+
+              {# ── Risk badge (issue #6) ── #}
+              <div class="mb-3">
+                {% if nivel_riesgo == 'alto' %}
+                <span class="risk-badge risk-alto" role="status" aria-label="Nivel de riesgo: alto">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                  Alto riesgo de plagio
+                </span>
+                {% elif nivel_riesgo == 'medio' %}
+                <span class="risk-badge risk-medio" role="status" aria-label="Nivel de riesgo: medio">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Coincidencias moderadas
+                </span>
+                {% else %}
+                <span class="risk-badge risk-bajo" role="status" aria-label="Nivel de riesgo: bajo">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  Sin coincidencias significativas
+                </span>
+                {% endif %}
+              </div>
+
               <h1 class="fw-bolder mb-3 text-break" style="font-size:clamp(1.3rem,3vw,1.9rem)">{{ job.resultado.documento }}</h1>
+
+              {# ── Summary stat pills (issue #6) ── #}
               <div class="d-flex flex-wrap gap-2 mb-4">
                 <span class="stat-pill">
                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  <strong>{{ job.resultado.resultados|length }}</strong> fuentes analizadas
+                  <strong>{{ job.resultado.resultados|length }}</strong> fuente{{ 's' if job.resultado.resultados|length != 1 else '' }} con coincidencias
+                </span>
+                <span class="stat-pill">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
+                  <strong>{{ total_fragmentos }}</strong> fragmento{{ 's' if total_fragmentos != 1 else '' }} detectado{{ 's' if total_fragmentos != 1 else '' }}
                 </span>
                 <span class="stat-pill">
                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   Similitud ponderada
                 </span>
               </div>
+
               <p class="mb-4" style="color:var(--text-muted);font-size:0.9rem;max-width:480px">
                 Se detallan las páginas con fragmentos similares al documento analizado.
                 La similitud global es un promedio ponderado de las coincidencias encontradas.
@@ -354,16 +393,19 @@
                 Descargar informe PDF
               </a>
             </div>
+
+            {# ── Score ring with dynamic colour (issue #6) ── #}
             <div class="col-md-4">
               <div class="score-wrapper">
                 <div class="score-label">Similitud global</div>
-                <div class="score-circle" role="img" aria-label="Similitud global: {{ job.resultado.similitud_global | default(0) }}%">
+                <div class="score-circle score-{{ nivel_riesgo == 'alto' and 'high' or nivel_riesgo == 'medio' and 'mid' or 'low' }}"
+                     role="img"
+                     aria-label="Similitud global: {{ job.resultado.similitud_global | default(0) }}%">
                   <span>{{ job.resultado.similitud_global | default(0) }}%</span>
                 </div>
                 <p class="score-desc">
-                  {% set s = job.resultado.similitud_global | default(0) %}
-                  {% if s >= 50 %}Nivel alto de coincidencias detectadas
-                  {% elif s >= 20 %}Coincidencias moderadas encontradas
+                  {% if nivel_riesgo == 'alto' %}Nivel alto de coincidencias detectadas
+                  {% elif nivel_riesgo == 'medio' %}Coincidencias moderadas encontradas
                   {% else %}Nivel bajo de coincidencias
                   {% endif %}
                 </p>
@@ -420,24 +462,17 @@
                   {% endif %}
                   {{ r.similitud }}%
                 </span>
-                {# Fragment counter chip (visible even when collapsed) #}
                 {% if r.frases_similares %}
                 <span style="font-size:0.72rem;color:var(--text-muted)">
-                  {{ r.frases_similares|length }}
-                  fragmento{{ 's' if r.frases_similares|length != 1 else '' }}
+                  {{ r.frases_similares|length }} fragmento{{ 's' if r.frases_similares|length != 1 else '' }}
                 </span>
                 {% endif %}
               </div>
             </div>
 
-            <!-- Technical detail (collapsed) -->
+            <!-- Technical detail -->
             <div class="mb-3">
-              <button
-                type="button"
-                class="tech-toggle"
-                aria-expanded="false"
-                data-target="tech-{{ loop.index }}"
-              >
+              <button type="button" class="tech-toggle" aria-expanded="false" data-target="tech-{{ loop.index }}">
                 Ver métricas técnicas
                 <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
@@ -449,7 +484,7 @@
               </div>
             </div>
 
-            {# ── Fragments section — collapsed by default (issue #7) ── #}
+            <!-- Fragments (collapsed by default, issue #7) -->
             {% if r.frases_similares %}
             <div class="mt-1">
               <button
@@ -464,7 +499,6 @@
                 {{ r.frases_similares|length }} fragmento{{ 's' if r.frases_similares|length != 1 else '' }} detectado{{ 's' if r.frases_similares|length != 1 else '' }}
                 <svg class="frag-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
-
               <div class="collapse mt-3" id="frags-{{ loop.index }}">
                 <h3 class="fw-bold mb-3" style="font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em">Fragmentos detectados</h3>
                 <div class="d-flex flex-column gap-2">
@@ -527,8 +561,7 @@
           target.hidden = expanded;
         });
       });
-
-      // Sync aria-expanded on fragment toggle buttons with Bootstrap collapse events
+      // Sync aria-expanded on fragment toggle buttons
       document.querySelectorAll('.btn-frags-toggle').forEach(btn => {
         const targetId = btn.getAttribute('data-bs-target').replace('#', '');
         const collapseEl = document.getElementById(targetId);
