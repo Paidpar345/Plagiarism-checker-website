@@ -5,26 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Detector de Plagio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <style>
       /* ── Dark theme (default) ── */
-      :root, [data-theme="dark"] {
+      :root,
+      [data-theme="dark"] {
         --bg-1: #0f1729;
         --bg-2: #1a2340;
         --accent: #6366f1;
         --accent-2: #8b5cf6;
-        --accent-glow: rgba(99,102,241,0.4);
+        --accent-glow: rgba(99, 102, 241, 0.4);
         --text-main: #e8ecf7;
         --text-muted: #9aa4c0;
-        --card-bg: rgba(255,255,255,0.06);
-        --card-border: rgba(255,255,255,0.12);
+        --card-bg: rgba(255, 255, 255, 0.06);
+        --card-border: rgba(255, 255, 255, 0.12);
         --ok: #34d399;
         --radius: 18px;
-        --grid-line: rgba(255,255,255,0.025);
-        --blob-1-bg: rgba(99,102,241,0.10);
-        --blob-2-bg: rgba(139,92,246,0.09);
-        --shadow-card: 0 24px 64px -24px rgba(0,0,0,0.55);
+        --grid-line: rgba(255, 255, 255, 0.025);
+        --blob-1-bg: rgba(99, 102, 241, 0.1);
+        --blob-2-bg: rgba(139, 92, 246, 0.09);
+        --shadow-card: 0 24px 64px -24px rgba(0, 0, 0, 0.55);
       }
 
       /* ── Light theme ── */
@@ -33,32 +40,53 @@
         --bg-2: #e4e8f5;
         --accent: #4f46e5;
         --accent-2: #7c3aed;
-        --accent-glow: rgba(79,70,229,0.3);
+        --accent-glow: rgba(79, 70, 229, 0.3);
         --text-main: #1a2340;
         --text-muted: #5a6380;
-        --card-bg: rgba(255,255,255,0.85);
-        --card-border: rgba(0,0,0,0.10);
+        --card-bg: rgba(255, 255, 255, 0.85);
+        --card-border: rgba(0, 0, 0, 0.1);
         --ok: #059669;
         --radius: 18px;
-        --grid-line: rgba(0,0,0,0.04);
-        --blob-1-bg: rgba(99,102,241,0.05);
-        --blob-2-bg: rgba(139,92,246,0.04);
-        --shadow-card: 0 24px 64px -24px rgba(0,0,0,0.18);
+        --grid-line: rgba(0, 0, 0, 0.04);
+        --blob-1-bg: rgba(99, 102, 241, 0.05);
+        --blob-2-bg: rgba(139, 92, 246, 0.04);
+        --shadow-card: 0 24px 64px -24px rgba(0, 0, 0, 0.18);
       }
 
-      *, *::before, *::after { box-sizing: border-box; }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
 
       body {
-        font-family: "Inter", -apple-system, sans-serif;
+        font-family:
+          "Inter",
+          -apple-system,
+          sans-serif;
         background-color: var(--bg-1);
         background-image:
-          radial-gradient(ellipse 80% 50% at 15% -10%, rgba(99,102,241,0.18) 0%, transparent 60%),
-          radial-gradient(ellipse 60% 40% at 85% 100%, rgba(139,92,246,0.15) 0%, transparent 55%),
-          radial-gradient(ellipse 40% 30% at 60% 40%, rgba(99,102,241,0.07) 0%, transparent 50%);
+          radial-gradient(
+            ellipse 80% 50% at 15% -10%,
+            rgba(99, 102, 241, 0.18) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 60% 40% at 85% 100%,
+            rgba(139, 92, 246, 0.15) 0%,
+            transparent 55%
+          ),
+          radial-gradient(
+            ellipse 40% 30% at 60% 40%,
+            rgba(99, 102, 241, 0.07) 0%,
+            transparent 50%
+          );
         color: var(--text-main);
         min-height: 100vh;
         overflow-x: hidden;
-        transition: background-color 0.25s, color 0.25s;
+        transition:
+          background-color 0.25s,
+          color 0.25s;
       }
       body::before {
         content: "";
@@ -80,14 +108,35 @@
         z-index: 0;
         animation: blobFloat 8s ease-in-out infinite alternate;
       }
-      .blob-1 { width: 340px; height: 340px; background: var(--blob-1-bg); top: -80px; left: -80px; animation-delay: 0s; }
-      .blob-2 { width: 260px; height: 260px; background: var(--blob-2-bg); bottom: 60px; right: -60px; animation-delay: 3s; }
+      .blob-1 {
+        width: 340px;
+        height: 340px;
+        background: var(--blob-1-bg);
+        top: -80px;
+        left: -80px;
+        animation-delay: 0s;
+      }
+      .blob-2 {
+        width: 260px;
+        height: 260px;
+        background: var(--blob-2-bg);
+        bottom: 60px;
+        right: -60px;
+        animation-delay: 3s;
+      }
       @keyframes blobFloat {
-        from { transform: translate(0,0) scale(1); }
-        to   { transform: translate(18px,14px) scale(1.05); }
+        from {
+          transform: translate(0, 0) scale(1);
+        }
+        to {
+          transform: translate(18px, 14px) scale(1.05);
+        }
       }
 
-      .page-content { position: relative; z-index: 1; }
+      .page-content {
+        position: relative;
+        z-index: 1;
+      }
 
       /* ── Navbar ── */
       .topnav {
@@ -110,11 +159,20 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: background 0.15s, color 0.15s, border-color 0.15s;
+        transition:
+          background 0.15s,
+          color 0.15s,
+          border-color 0.15s;
         flex-shrink: 0;
       }
-      .btn-theme-toggle:hover { color: var(--text-main); border-color: var(--accent); }
-      .btn-theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .btn-theme-toggle:hover {
+        color: var(--text-main);
+        border-color: var(--accent);
+      }
+      .btn-theme-toggle:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
 
       /* ── Hero ── */
       .hero {
@@ -136,19 +194,31 @@
         margin-bottom: 1rem;
       }
       .badge-eyebrow .dot {
-        width: 6px; height: 6px;
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
         background: var(--accent-2);
         animation: pulse 2s ease-in-out infinite;
       }
       @keyframes pulse {
-        0%,100% { opacity: 1; transform: scale(1); }
-        50%      { opacity: 0.5; transform: scale(1.4); }
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(1.4);
+        }
       }
       .hero h1 {
         font-weight: 800;
         font-size: clamp(1.9rem, 4vw, 2.8rem);
-        background: linear-gradient(135deg, var(--text-main) 20%, var(--text-muted) 100%);
+        background: linear-gradient(
+          135deg,
+          var(--text-main) 20%,
+          var(--text-muted) 100%
+        );
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
@@ -181,45 +251,80 @@
         padding: 2.4rem 1.5rem;
         text-align: center;
         cursor: pointer;
-        transition: border-color 0.2s, background 0.2s, transform 0.15s;
-        background: rgba(255,255,255,0.02);
+        transition:
+          border-color 0.2s,
+          background 0.2s,
+          transform 0.15s;
+        background: rgba(255, 255, 255, 0.02);
         position: relative;
         overflow: hidden;
       }
       .upload-zone:hover,
       .upload-zone.dragover {
         border-color: var(--accent);
-        background: rgba(99,102,241,0.07);
+        background: rgba(99, 102, 241, 0.07);
         transform: translateY(-1px);
       }
       .upload-zone:focus-within {
         outline: 2px solid var(--accent);
         outline-offset: 2px;
       }
-      .upload-zone .uz-icon { color: var(--accent-2); margin-bottom: 0.7rem; animation: floatIcon 3s ease-in-out infinite; }
-      @keyframes floatIcon {
-        0%,100% { transform: translateY(0); }
-        50%      { transform: translateY(-5px); }
+      .upload-zone .uz-icon {
+        color: var(--accent-2);
+        margin-bottom: 0.7rem;
+        animation: floatIcon 3s ease-in-out infinite;
       }
-      .upload-zone .uz-title { font-weight: 600; font-size: 1rem; color: var(--text-main); }
-      .upload-zone .uz-sub   { color: var(--text-muted); font-size: 0.82rem; margin-top: 3px; }
-      #document { display: none; }
+      @keyframes floatIcon {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-5px);
+        }
+      }
+      .upload-zone .uz-title {
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--text-main);
+      }
+      .upload-zone .uz-sub {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        margin-top: 3px;
+      }
+      #document {
+        display: none;
+      }
 
       /* ── File info card ── */
       #fileInfo {
         display: none;
         border-radius: 12px;
-        background: rgba(52,211,153,0.07);
-        border: 1px solid rgba(52,211,153,0.25);
+        background: rgba(52, 211, 153, 0.07);
+        border: 1px solid rgba(52, 211, 153, 0.25);
         padding: 0.85rem 1rem;
         margin-top: 0.75rem;
         align-items: center;
         gap: 0.75rem;
       }
-      #fileInfo.show { display: flex; }
-      .fi-icon { color: var(--ok); flex-shrink: 0; }
-      .fi-name { font-weight: 600; font-size: 0.92rem; word-break: break-all; }
-      .fi-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 1px; }
+      #fileInfo.show {
+        display: flex;
+      }
+      .fi-icon {
+        color: var(--ok);
+        flex-shrink: 0;
+      }
+      .fi-name {
+        font-weight: 600;
+        font-size: 0.92rem;
+        word-break: break-all;
+      }
+      .fi-meta {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin-top: 1px;
+      }
       .fi-badge {
         margin-left: auto;
         padding: 0.2rem 0.6rem;
@@ -227,24 +332,46 @@
         font-size: 0.7rem;
         font-weight: 700;
         letter-spacing: 0.04em;
-        background: rgba(52,211,153,0.15);
+        background: rgba(52, 211, 153, 0.15);
         color: var(--ok);
-        border: 1px solid rgba(52,211,153,0.3);
+        border: 1px solid rgba(52, 211, 153, 0.3);
         flex-shrink: 0;
       }
 
       /* ── Slider ── */
-      .slider-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
-      .form-range::-webkit-slider-thumb { background: var(--accent); }
-      .form-range::-moz-range-thumb     { background: var(--accent); }
-      .form-range::-webkit-slider-runnable-track { background: rgba(255,255,255,0.12); border-radius: 999px; }
-      .form-range:focus { outline: none; }
-      .form-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--accent-glow); }
+      .slider-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+      .form-range::-webkit-slider-thumb {
+        background: var(--accent);
+      }
+      .form-range::-moz-range-thumb {
+        background: var(--accent);
+      }
+      .form-range::-webkit-slider-runnable-track {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+      }
+      .form-range:focus {
+        outline: none;
+      }
+      .form-range:focus::-webkit-slider-thumb {
+        box-shadow: 0 0 0 3px var(--accent-glow);
+      }
 
       /* ── Advanced accordion ── */
-      .accordion-item-custom { background: transparent; border: 1px solid var(--card-border); border-radius: 12px !important; overflow: hidden; }
+      .accordion-item-custom {
+        background: transparent;
+        border: 1px solid var(--card-border);
+        border-radius: 12px !important;
+        overflow: hidden;
+      }
       .accordion-button-custom {
-        background: rgba(255,255,255,0.03);
+        background: rgba(255, 255, 255, 0.03);
         color: var(--text-muted);
         font-size: 0.85rem;
         font-weight: 600;
@@ -256,28 +383,62 @@
         align-items: center;
         gap: 0.5rem;
         cursor: pointer;
-        transition: background 0.15s, color 0.15s;
+        transition:
+          background 0.15s,
+          color 0.15s;
         border-radius: 12px;
       }
-      .accordion-button-custom:hover { background: rgba(255,255,255,0.06); color: var(--text-main); }
-      .accordion-button-custom[aria-expanded="true"] { color: var(--text-main); border-radius: 12px 12px 0 0; }
-      .accordion-button-custom .chevron { margin-left: auto; transition: transform 0.25s; }
-      .accordion-button-custom[aria-expanded="true"] .chevron { transform: rotate(180deg); }
-      .accordion-body-custom { padding: 1rem; background: rgba(255,255,255,0.02); border-top: 1px solid var(--card-border); }
-      .form-label-custom { color: var(--text-muted); font-weight: 500; font-size: 0.85rem; }
+      .accordion-button-custom:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-main);
+      }
+      .accordion-button-custom[aria-expanded="true"] {
+        color: var(--text-main);
+        border-radius: 12px 12px 0 0;
+      }
+      .accordion-button-custom .chevron {
+        margin-left: auto;
+        transition: transform 0.25s;
+      }
+      .accordion-button-custom[aria-expanded="true"] .chevron {
+        transform: rotate(180deg);
+      }
+      .accordion-body-custom {
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.02);
+        border-top: 1px solid var(--card-border);
+      }
+      .form-label-custom {
+        color: var(--text-muted);
+        font-weight: 500;
+        font-size: 0.85rem;
+      }
       .algo-select {
-        background-color: rgba(255,255,255,0.05);
+        background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid var(--card-border);
         color: var(--text-main);
         border-radius: 10px;
         padding: 0.5rem 0.8rem;
         font-size: 0.9rem;
         width: 100%;
-        transition: border-color 0.15s, box-shadow 0.15s;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
       }
-      .algo-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-      .algo-select option { background-color: var(--bg-2); color: var(--text-main); }
-      .algo-hint { color: var(--text-muted); font-size: 0.77rem; margin-top: 0.4rem; }
+      .algo-select:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+      }
+      .algo-select option {
+        background-color: var(--bg-2);
+        color: var(--text-main);
+      }
+      .algo-hint {
+        color: var(--text-muted);
+        font-size: 0.77rem;
+        margin-top: 0.4rem;
+      }
 
       /* ── CTA ── */
       .btn-analyze {
@@ -293,17 +454,38 @@
         align-items: center;
         justify-content: center;
         gap: 0.6rem;
-        transition: transform 0.15s, box-shadow 0.15s;
+        transition:
+          transform 0.15s,
+          box-shadow 0.15s;
         box-shadow: 0 10px 36px -10px var(--accent-glow);
         cursor: pointer;
       }
-      .btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 16px 40px -8px var(--accent-glow); color: #fff; }
-      .btn-analyze:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-      .btn-analyze:disabled { opacity: 0.55; transform: none; cursor: not-allowed; box-shadow: none; }
+      .btn-analyze:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 40px -8px var(--accent-glow);
+        color: #fff;
+      }
+      .btn-analyze:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      .btn-analyze:disabled {
+        opacity: 0.55;
+        transform: none;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
 
       /* ── Progress ── */
-      .progress-wrap { margin-top: 1.25rem; }
-      .progress-stages { display: flex; justify-content: space-between; margin-bottom: 0.5rem; gap: 4px; }
+      .progress-wrap {
+        margin-top: 1.25rem;
+      }
+      .progress-stages {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        gap: 4px;
+      }
       .stage {
         flex: 1;
         text-align: center;
@@ -312,16 +494,27 @@
         color: var(--text-muted);
         padding: 0.3rem 0.2rem;
         border-radius: 6px;
-        background: rgba(255,255,255,0.04);
+        background: rgba(255, 255, 255, 0.04);
         border: 1px solid transparent;
-        transition: color 0.3s, background 0.3s, border-color 0.3s;
+        transition:
+          color 0.3s,
+          background 0.3s,
+          border-color 0.3s;
       }
-      .stage.active { color: var(--accent-2); background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.3); }
-      .stage.done   { color: var(--ok); background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.2); }
+      .stage.active {
+        color: var(--accent-2);
+        background: rgba(139, 92, 246, 0.12);
+        border-color: rgba(139, 92, 246, 0.3);
+      }
+      .stage.done {
+        color: var(--ok);
+        background: rgba(52, 211, 153, 0.08);
+        border-color: rgba(52, 211, 153, 0.2);
+      }
       .progress-custom {
         height: 8px;
         border-radius: 999px;
-        background: rgba(255,255,255,0.08);
+        background: rgba(255, 255, 255, 0.08);
         overflow: hidden;
       }
       .progress-custom .bar {
@@ -330,13 +523,18 @@
         border-radius: 999px;
         transition: width 0.4s ease;
       }
-      .progress-msg { text-align: center; font-size: 0.82rem; color: var(--text-muted); margin-top: 0.5rem; }
+      .progress-msg {
+        text-align: center;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+      }
 
       /* ── Error ── */
       .alert-custom {
         border-radius: 12px;
-        border: 1px solid rgba(248,113,113,0.35);
-        background: rgba(248,113,113,0.08);
+        border: 1px solid rgba(248, 113, 113, 0.35);
+        background: rgba(248, 113, 113, 0.08);
         color: #fecaca;
         font-size: 0.88rem;
         display: flex;
@@ -346,16 +544,39 @@
       }
 
       /* ── Trust footer ── */
-      .trust-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; padding: 2rem 1rem 1.25rem; }
-      .trust-item { display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; color: var(--text-muted); }
-      .trust-item svg { color: var(--ok); flex-shrink: 0; }
+      .trust-footer {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1.5rem;
+        padding: 2rem 1rem 1.25rem;
+      }
+      .trust-item {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+      .trust-item svg {
+        color: var(--ok);
+        flex-shrink: 0;
+      }
 
       /* ── Focus visible (issue #10) ── */
-      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
 
       /* ── Misc ── */
-      .container-narrow { max-width: 620px !important; margin-inline: auto; }
-      ::selection { background: var(--accent-glow); }
+      .container-narrow {
+        max-width: 620px !important;
+        margin-inline: auto;
+      }
+      ::selection {
+        background: var(--accent-glow);
+      }
     </style>
   </head>
   <body>
@@ -363,7 +584,6 @@
     <div class="blob blob-2" aria-hidden="true"></div>
 
     <div class="page-content">
-      <!-- Theme toggle (issue #13) -->
       <nav class="topnav" aria-label="Controles de tema">
         <button
           id="themeToggle"
@@ -372,30 +592,46 @@
           aria-label="Cambiar a modo claro"
           title="Cambiar tema"
         >
-          <!-- Moon icon (shown in dark mode, click to go light) -->
-          <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          <svg
+            id="themeIcon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
           </svg>
         </button>
       </nav>
 
-      <!-- Hero -->
       <header class="hero">
         <div class="badge-eyebrow" aria-hidden="true">
           <span class="dot"></span>
           Análisis inteligente de similitud
         </div>
         <h1>Detector de Plagio</h1>
-        <p>Analiza similitudes textuales y detecta posibles coincidencias con contenido disponible en la web.</p>
+        <p>
+          Analiza similitudes textuales y detecta posibles coincidencias con
+          contenido disponible en la web.
+        </p>
       </header>
 
-      <!-- Form card -->
       <main class="container-narrow px-3 pb-5">
         <div class="glass-card p-4 p-md-5">
-          <form id="scanForm" novalidate aria-label="Formulario de análisis de plagio">
-
-            <!-- Upload zone (issue #10: aria-describedby) -->
-            <div id="uploadHint" class="visually-hidden">Formatos aceptados: PDF, DOCX, TXT. Tamaño máximo 15 MB.</div>
+          <form
+            id="scanForm"
+            novalidate
+            aria-label="Formulario de análisis de plagio"
+          >
+            <div id="uploadHint" class="visually-hidden">
+              Formatos aceptados: PDF, DOCX, TXT. Tamaño máximo 15 MB.
+            </div>
             <label
               class="upload-zone"
               id="uploadZone"
@@ -404,14 +640,27 @@
               aria-describedby="uploadHint"
             >
               <div class="uz-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
-                  <polyline points="7 9 12 4 17 9"/>
-                  <line x1="12" y1="4" x2="12" y2="16"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+                  <polyline points="7 9 12 4 17 9" />
+                  <line x1="12" y1="4" x2="12" y2="16" />
                 </svg>
               </div>
               <div class="uz-title">Arrastra tu documento aquí</div>
-              <div class="uz-sub">o haz clic para seleccionarlo &nbsp;·&nbsp; PDF, DOCX o TXT &nbsp;·&nbsp; Máx. 15 MB</div>
+              <div class="uz-sub">
+                o haz clic para seleccionarlo &nbsp;·&nbsp; PDF, DOCX o TXT
+                &nbsp;·&nbsp; Máx. 15 MB
+              </div>
             </label>
             <input
               type="file"
@@ -424,12 +673,21 @@
               aria-describedby="uploadHint"
             />
 
-            <!-- File info (issue #10: role+aria-live already set) -->
             <div id="fileInfo" role="status" aria-live="polite">
               <span class="fi-icon" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                  <polyline points="22 4 12 14.01 9 11.01"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
                 </svg>
               </span>
               <div>
@@ -439,7 +697,44 @@
               <span class="fi-badge" id="fiBadge">LISTO</span>
             </div>
 
-            <!-- Advanced accordion -->
+            <div class="mt-4 mb-4">
+              <label class="form-label-custom" for="scanMode"
+                >Destino del análisis</label
+              >
+              <select class="algo-select" id="scanMode" name="scan_mode">
+                <option value="web" selected>
+                  🌐 Internet (Búsqueda global en la Web)
+                </option>
+                <option value="corpus">
+                  📁 Corpus Local (Comparar con tus propios documentos)
+                </option>
+              </select>
+            </div>
+
+            <div id="corpusFilesContainer" class="mb-4 d-none">
+              <label class="form-label-custom" for="corpusFiles"
+                >Archivos de referencia (Corpus)</label
+              >
+              <input
+                type="file"
+                class="algo-select"
+                id="corpusFiles"
+                name="corpus_files"
+                multiple
+                accept=".pdf,.docx,.txt"
+                aria-label="Seleccionar archivos del corpus"
+              />
+              <div class="algo-hint" id="corpusFilesHint">
+                Selecciona entre 1 y 10 archivos (PDF, DOCX o TXT). Máx. 5 MB
+                por archivo.
+              </div>
+              <div
+                id="corpusFilesList"
+                class="mt-2"
+                style="font-size: 0.85rem; color: var(--text-muted)"
+              ></div>
+            </div>
+
             <div class="mt-4" id="advancedAccordion">
               <button
                 type="button"
@@ -448,49 +743,128 @@
                 aria-expanded="false"
                 aria-controls="advancedBody"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path
+                    d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"
+                  />
+                </svg>
                 Opciones avanzadas
-                <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                <svg
+                  class="chevron"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
               </button>
-              <div class="accordion-body-custom" id="advancedBody" role="region" aria-labelledby="advancedToggle" hidden>
+              <div
+                class="accordion-body-custom"
+                id="advancedBody"
+                role="region"
+                aria-labelledby="advancedToggle"
+                hidden
+              >
                 <div class="mb-4">
-                  <label class="form-label-custom d-flex justify-content-between" for="umbral">
+                  <label
+                    class="form-label-custom d-flex justify-content-between"
+                    for="umbral"
+                  >
                     <span>Detectar coincidencias de al menos</span>
-                    <strong style="color:var(--text-main)"><span id="umbralValue">5</span>%</strong>
+                    <strong style="color: var(--text-main)"
+                      ><span id="umbralValue">5</span>%</strong
+                    >
                   </label>
-                  <input type="range" class="form-range" id="umbral" name="umbral" min="1" max="80" value="5"
-                    aria-valuemin="1" aria-valuemax="80" aria-valuenow="5" />
+                  <input
+                    type="range"
+                    class="form-range"
+                    id="umbral"
+                    name="umbral"
+                    min="1"
+                    max="80"
+                    value="5"
+                    aria-valuemin="1"
+                    aria-valuemax="80"
+                    aria-valuenow="5"
+                  />
                   <div class="slider-labels" aria-hidden="true">
                     <span>Más sensible</span>
                     <span>Menos sensible</span>
                   </div>
                 </div>
                 <div>
-                  <label class="form-label-custom" for="algoritmo">Modo de análisis</label>
-                  <select class="algo-select" id="algoritmo" name="algoritmo" aria-describedby="algoHint">
-                    <option value="combinado" selected>Equilibrado (recomendado)</option>
+                  <label class="form-label-custom" for="algoritmo"
+                    >Modo de análisis</label
+                  >
+                  <select
+                    class="algo-select"
+                    id="algoritmo"
+                    name="algoritmo"
+                    aria-describedby="algoHint"
+                  >
+                    <option value="combinado" selected>
+                      Equilibrado (recomendado)
+                    </option>
                     <option value="tfidf">Rápido — similitud temática</option>
-                    <option value="ngramas">Preciso — detección de parafraseo</option>
+                    <option value="ngramas">
+                      Preciso — detección de parafraseo
+                    </option>
                     <option value="shingling">Exhaustivo — copia exacta</option>
                   </select>
-                  <div class="algo-hint" id="algoHint">Combina múltiples señales para el resultado más completo.</div>
+                  <div class="algo-hint" id="algoHint">
+                    Combina múltiples señales para el resultado más completo.
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- CTA -->
             <button type="submit" class="btn-analyze mt-4" id="submitBtn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               Analizar documento
             </button>
           </form>
 
-          <!-- Progress (issue #10: role+aria-valuenow on bar) -->
-          <div class="progress-wrap" id="spinnerWrap" style="display:none"
-               role="status" aria-live="polite" aria-label="Estado del análisis">
+          <div
+            class="progress-wrap"
+            id="spinnerWrap"
+            style="display: none"
+            role="status"
+            aria-live="polite"
+            aria-label="Estado del análisis"
+          >
             <div class="progress-stages" id="progressStages" aria-hidden="true">
               <div class="stage" id="stage-upload">Subiendo</div>
               <div class="stage" id="stage-process">Procesando</div>
@@ -498,37 +872,100 @@
               <div class="stage" id="stage-report">Generando informe</div>
             </div>
             <div class="progress-custom">
-              <div class="bar" id="progressBar" style="width:5%"
-                   role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100"
-                   aria-label="Progreso del análisis"></div>
+              <div
+                class="bar"
+                id="progressBar"
+                style="width: 5%"
+                role="progressbar"
+                aria-valuenow="5"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-label="Progreso del análisis"
+              ></div>
             </div>
             <p class="progress-msg" id="progressMsg">Iniciando...</p>
           </div>
 
-          <!-- Error (issue #10: role=alert) -->
-          <div id="errorBox" class="alert-custom mt-3 d-none" role="alert" aria-live="assertive">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
+          <div
+            id="errorBox"
+            class="alert-custom mt-3 d-none"
+            role="alert"
+            aria-live="assertive"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              style="flex-shrink: 0; margin-top: 1px"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <span id="errorMsg"></span>
           </div>
         </div>
       </main>
 
-      <!-- Trust footer -->
       <footer class="trust-footer" aria-label="Garantías de privacidad">
         <div class="trust-item">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
           Tus documentos no se almacenan
         </div>
         <div class="trust-item">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
           Procesamiento seguro
         </div>
         <div class="trust-item">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
           Resultados en pocos segundos
         </div>
       </footer>

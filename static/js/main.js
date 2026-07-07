@@ -1,36 +1,43 @@
 // CSP: script lives in static/js/main.js (script-src 'self', no unsafe-inline)
 
 // ── Theme toggle (issue #13) ── runs before paint to avoid flash
-(function() {
-  var root  = document.documentElement;
-  var saved = localStorage.getItem('theme') || 'dark';
-  root.setAttribute('data-theme', saved);
-  root.setAttribute('data-bs-theme', saved);
+(function () {
+  var root = document.documentElement;
+  var saved = localStorage.getItem("theme") || "dark";
+  root.setAttribute("data-theme", saved);
+  root.setAttribute("data-bs-theme", saved);
 })();
 
 // ── DOM refs ──
-const form            = document.getElementById('scanForm');
-const spinnerWrap     = document.getElementById('spinnerWrap');
-const submitBtn       = document.getElementById('submitBtn');
-const errorBox        = document.getElementById('errorBox');
-const errorMsg        = document.getElementById('errorMsg');
-const progressBar     = document.getElementById('progressBar');
-const progressMsg     = document.getElementById('progressMsg');
-const umbralInput     = document.getElementById('umbral');
-const umbralValue     = document.getElementById('umbralValue');
-const fileInput       = document.getElementById('document');
-const uploadZone      = document.getElementById('uploadZone');
-const algoritmoSelect = document.getElementById('algoritmo');
-const algoHint        = document.getElementById('algoHint');
-const fileInfo        = document.getElementById('fileInfo');
-const fiName          = document.getElementById('fiName');
-const fiMeta          = document.getElementById('fiMeta');
-const fiBadge         = document.getElementById('fiBadge');
-const themeToggle     = document.getElementById('themeToggle');
-const themeIcon       = document.getElementById('themeIcon');
+const form = document.getElementById("scanForm");
+const spinnerWrap = document.getElementById("spinnerWrap");
+const submitBtn = document.getElementById("submitBtn");
+const errorBox = document.getElementById("errorBox");
+const errorMsg = document.getElementById("errorMsg");
+const progressBar = document.getElementById("progressBar");
+const progressMsg = document.getElementById("progressMsg");
+const umbralInput = document.getElementById("umbral");
+const umbralValue = document.getElementById("umbralValue");
+const fileInput = document.getElementById("document");
+const uploadZone = document.getElementById("uploadZone");
+const algoritmoSelect = document.getElementById("algoritmo");
+const algoHint = document.getElementById("algoHint");
+const fileInfo = document.getElementById("fileInfo");
+const fiName = document.getElementById("fiName");
+const fiMeta = document.getElementById("fiMeta");
+const fiBadge = document.getElementById("fiBadge");
+const themeToggle = document.getElementById("themeToggle");
+const themeIcon = document.getElementById("themeIcon");
+
+// Refs añadidas para Issue #9 (Corpus Local)
+const scanModeSelect = document.getElementById("scanMode");
+const corpusFilesContainer = document.getElementById("corpusFilesContainer");
+const corpusFilesInput = document.getElementById("corpusFiles");
+const corpusFilesList = document.getElementById("corpusFilesList");
 
 const MOON_SVG = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-const SUN_SVG  = '<circle cx="12" cy="12" r="5"/>' +
+const SUN_SVG =
+  '<circle cx="12" cy="12" r="5"/>' +
   '<line x1="12" y1="1" x2="12" y2="3"/>' +
   '<line x1="12" y1="21" x2="12" y2="23"/>' +
   '<line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>' +
@@ -42,113 +49,160 @@ const SUN_SVG  = '<circle cx="12" cy="12" r="5"/>' +
 
 // Sync icon to current saved theme on load
 if (themeIcon) {
-  const current = localStorage.getItem('theme') || 'dark';
-  themeIcon.innerHTML = current === 'dark' ? MOON_SVG : SUN_SVG;
+  const current = localStorage.getItem("theme") || "dark";
+  themeIcon.innerHTML = current === "dark" ? MOON_SVG : SUN_SVG;
 }
 
 if (themeToggle) {
-  themeToggle.addEventListener('click', () => {
-    const root    = document.documentElement;
-    const current = root.getAttribute('data-theme') || 'dark';
-    const next    = current === 'dark' ? 'light' : 'dark';
-    root.setAttribute('data-theme', next);
-    root.setAttribute('data-bs-theme', next);
-    localStorage.setItem('theme', next);
-    if (themeIcon) themeIcon.innerHTML = next === 'dark' ? MOON_SVG : SUN_SVG;
-    themeToggle.setAttribute('aria-label',
-      next === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+  themeToggle.addEventListener("click", () => {
+    const root = document.documentElement;
+    const current = root.getAttribute("data-theme") || "dark";
+    const next = current === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    root.setAttribute("data-bs-theme", next);
+    localStorage.setItem("theme", next);
+    if (themeIcon) themeIcon.innerHTML = next === "dark" ? MOON_SVG : SUN_SVG;
+    themeToggle.setAttribute(
+      "aria-label",
+      next === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro",
+    );
+  });
+}
+
+// ── Mostrar/Ocultar campos según el modo de escaneo (Issue #9) ──
+if (scanModeSelect) {
+  scanModeSelect.addEventListener("change", () => {
+    if (scanModeSelect.value === "corpus") {
+      corpusFilesContainer.classList.remove("d-none");
+    } else {
+      corpusFilesContainer.classList.add("d-none");
+      if (corpusFilesInput) corpusFilesInput.value = "";
+      if (corpusFilesList) corpusFilesList.innerHTML = "";
+    }
   });
 }
 
 // ── Advanced accordion toggle ──
-const advancedToggle = document.getElementById('advancedToggle');
-const advancedBody   = document.getElementById('advancedBody');
+const advancedToggle = document.getElementById("advancedToggle");
+const advancedBody = document.getElementById("advancedBody");
 if (advancedToggle && advancedBody) {
-  advancedToggle.addEventListener('click', () => {
-    const expanded = advancedToggle.getAttribute('aria-expanded') === 'true';
-    advancedToggle.setAttribute('aria-expanded', String(!expanded));
+  advancedToggle.addEventListener("click", () => {
+    const expanded = advancedToggle.getAttribute("aria-expanded") === "true";
+    advancedToggle.setAttribute("aria-expanded", String(!expanded));
     advancedBody.hidden = expanded;
   });
 }
 
 // ── Umbral slider ──
 if (umbralInput) {
-  umbralInput.addEventListener('input', () => {
+  umbralInput.addEventListener("input", () => {
     umbralValue.textContent = umbralInput.value;
-    umbralInput.setAttribute('aria-valuenow', umbralInput.value);
+    umbralInput.setAttribute("aria-valuenow", umbralInput.value);
   });
 }
 
 // ── Algorithm hints ──
 const ALGO_HINTS = {
-  combinado: 'Combina múltiples señales para el resultado más completo.',
-  tfidf:     'Rápido. Detecta similitud temática; ignora el orden de palabras.',
-  ngramas:   'Preciso. Ideal para detectar frases reordenadas o parafraseadas.',
-  shingling: 'Exhaustivo. Solo marca coincidencias de texto casi idéntico.',
+  combinado: "Combina múltiples señales para el resultado más completo.",
+  tfidf: "Rápido. Detecta similitud temática; ignora el orden de palabras.",
+  ngramas: "Preciso. Ideal para detectar frases reordenadas o parafraseadas.",
+  shingling: "Exhaustivo. Solo marca coincidencias de texto casi idéntico.",
 };
 if (algoritmoSelect) {
-  algoritmoSelect.addEventListener('change', () => {
-    if (algoHint) algoHint.textContent = ALGO_HINTS[algoritmoSelect.value] || '';
+  algoritmoSelect.addEventListener("change", () => {
+    if (algoHint)
+      algoHint.textContent = ALGO_HINTS[algoritmoSelect.value] || "";
   });
 }
 
 // ── File validation ──
-const ALLOWED_EXT = ['pdf', 'docx', 'txt'];
-const MAX_BYTES   = 15 * 1024 * 1024;
-const EXT_LABELS  = { pdf: 'PDF', docx: 'Word', txt: 'Texto plano' };
+const ALLOWED_EXT = ["pdf", "docx", "txt"];
+const MAX_BYTES = 15 * 1024 * 1024;
+const EXT_LABELS = { pdf: "PDF", docx: "Word", txt: "Texto plano" };
 
 function validateFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  if (!ALLOWED_EXT.includes(ext)) return 'Formato no soportado. Usa PDF, DOCX o TXT.';
-  if (file.size > MAX_BYTES)       return 'El archivo supera el tamaño máximo permitido (15 MB).';
+  const ext = file.name.split(".").pop().toLowerCase();
+  if (!ALLOWED_EXT.includes(ext))
+    return "Formato no soportado. Usa PDF, DOCX o TXT.";
+  if (file.size > MAX_BYTES)
+    return "El archivo supera el tamaño máximo permitido (15 MB).";
   return null;
 }
 
 function formatBytes(bytes) {
-  if (bytes < 1024)        return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
 function showFileInfo(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  fiName.textContent  = file.name;
-  fiMeta.textContent  = formatBytes(file.size) + '  ·  ' + (EXT_LABELS[ext] || ext.toUpperCase());
-  fiBadge.textContent = 'LISTO';
-  fileInfo.classList.add('show');
+  const ext = file.name.split(".").pop().toLowerCase();
+  fiName.textContent = file.name;
+  fiMeta.textContent =
+    formatBytes(file.size) + "  ·  " + (EXT_LABELS[ext] || ext.toUpperCase());
+  fiBadge.textContent = "LISTO";
+  fileInfo.classList.add("show");
 }
 
 function clearFileInfo() {
-  fileInfo.classList.remove('show');
-  fiName.textContent = '';
-  fiMeta.textContent = '';
+  fileInfo.classList.remove("show");
+  fiName.textContent = "";
+  fiMeta.textContent = "";
 }
 
 if (fileInput) {
-  fileInput.addEventListener('change', () => {
-    if (!fileInput.files.length) { clearFileInfo(); return; }
+  fileInput.addEventListener("change", () => {
+    if (!fileInput.files.length) {
+      clearFileInfo();
+      return;
+    }
     const file = fileInput.files[0];
-    const err  = validateFile(file);
-    if (err) { showError(err); fileInput.value = ''; clearFileInfo(); return; }
+    const err = validateFile(file);
+    if (err) {
+      showError(err);
+      fileInput.value = "";
+      clearFileInfo();
+      return;
+    }
     clearError();
     showFileInfo(file);
   });
 }
 
+// ── Mostrar los nombres de los archivos del corpus local (Issue #9) ──
+if (corpusFilesInput) {
+  corpusFilesInput.addEventListener("change", () => {
+    if (!corpusFilesInput.files.length) {
+      corpusFilesList.innerHTML = "";
+      return;
+    }
+    let html = '<strong>Archivos seleccionados:</strong><ul class="mb-0">';
+    for (let f of corpusFilesInput.files) {
+      html += `<li>${f.name} (${formatBytes(f.size)})</li>`;
+    }
+    html += "</ul>";
+    corpusFilesList.innerHTML = html;
+  });
+}
+
 // ── Drag & drop ──
 if (uploadZone) {
-  ['dragover', 'dragleave', 'drop'].forEach(evt => {
-    uploadZone.addEventListener(evt, e => {
+  ["dragover", "dragleave", "drop"].forEach((evt) => {
+    uploadZone.addEventListener(evt, (e) => {
       e.preventDefault();
-      if (evt === 'dragover')                     uploadZone.classList.add('dragover');
-      if (evt === 'dragleave' || evt === 'drop')  uploadZone.classList.remove('dragover');
+      if (evt === "dragover") uploadZone.classList.add("dragover");
+      if (evt === "dragleave" || evt === "drop")
+        uploadZone.classList.remove("dragover");
     });
   });
-  uploadZone.addEventListener('drop', e => {
+  uploadZone.addEventListener("drop", (e) => {
     if (!e.dataTransfer.files.length) return;
     const file = e.dataTransfer.files[0];
-    const err  = validateFile(file);
-    if (err) { showError(err); return; }
+    const err = validateFile(file);
+    if (err) {
+      showError(err);
+      return;
+    }
     fileInput.files = e.dataTransfer.files;
     clearError();
     showFileInfo(file);
@@ -158,43 +212,48 @@ if (uploadZone) {
 // ── Error helpers ──
 function showError(message) {
   errorMsg.textContent = message;
-  errorBox.classList.remove('d-none');
-  spinnerWrap.style.display = 'none';
+  errorBox.classList.remove("d-none");
+  spinnerWrap.style.display = "none";
   submitBtn.disabled = false;
 }
 function clearError() {
-  errorBox.classList.add('d-none');
-  errorMsg.textContent = '';
+  errorBox.classList.add("d-none");
+  errorMsg.textContent = "";
 }
 
 // ── Stage helpers ──
 const stages = {
-  upload:  document.getElementById('stage-upload'),
-  process: document.getElementById('stage-process'),
-  search:  document.getElementById('stage-search'),
-  report:  document.getElementById('stage-report'),
+  upload: document.getElementById("stage-upload"),
+  process: document.getElementById("stage-process"),
+  search: document.getElementById("stage-search"),
+  report: document.getElementById("stage-report"),
 };
-const STAGE_ORDER = ['upload', 'process', 'search', 'report'];
+const STAGE_ORDER = ["upload", "process", "search", "report"];
 
 const STAGE_PATTERNS = [
-  { re: /subiendo|uploading/i,                       stage: 'upload'  },
-  { re: /procesando|extrayendo|frases clave/i,       stage: 'process' },
-  { re: /buscando|consulta|web|páginas encontradas/i, stage: 'search' },
-  { re: /generando|informe|comparando página/i,      stage: 'report'  },
+  { re: /subiendo|uploading/i, stage: "upload" },
+  { re: /procesando|extrayendo|frases clave/i, stage: "process" },
+  { re: /buscando|consulta|web|páginas encontradas/i, stage: "search" },
+  {
+    re: /generando|informe|comparando página|comparando corpus/i,
+    stage: "report",
+  },
 ];
 
 function setStage(active) {
   const idx = STAGE_ORDER.indexOf(active);
   STAGE_ORDER.forEach((s, i) => {
     if (!stages[s]) return;
-    stages[s].classList.remove('active', 'done');
-    if (i < idx)        stages[s].classList.add('done');
-    else if (i === idx) stages[s].classList.add('active');
+    stages[s].classList.remove("active", "done");
+    if (i < idx) stages[s].classList.add("done");
+    else if (i === idx) stages[s].classList.add("active");
   });
 }
 
 function resetStages() {
-  STAGE_ORDER.forEach(s => { if (stages[s]) stages[s].classList.remove('active', 'done'); });
+  STAGE_ORDER.forEach((s) => {
+    if (stages[s]) stages[s].classList.remove("active", "done");
+  });
 }
 
 function detectStageFromMessage(msg) {
@@ -207,13 +266,13 @@ function detectStageFromMessage(msg) {
 // ── Progress bar helper ──
 function setProgress(pct, min = 5) {
   const clamped = Math.min(95, Math.max(min, pct));
-  progressBar.style.width = clamped + '%';
-  progressBar.setAttribute('aria-valuenow', clamped);
+  progressBar.style.width = clamped + "%";
+  progressBar.setAttribute("aria-valuenow", clamped);
 }
 
 // ── Progress polling ──
 function pollJobStatus(jobId) {
-  setStage('upload');
+  setStage("upload");
   const interval = setInterval(async () => {
     try {
       const res = await fetch(`/api/scan/status/${jobId}`);
@@ -221,7 +280,7 @@ function pollJobStatus(jobId) {
 
       if (!res.ok) {
         clearInterval(interval);
-        showError(job.error || 'No se pudo consultar el estado del análisis.');
+        showError(job.error || "No se pudo consultar el estado del análisis.");
         return;
       }
 
@@ -231,59 +290,116 @@ function pollJobStatus(jobId) {
         setProgress(Math.round((progreso.actual / progreso.total) * 100));
       }
 
-      const msg = progreso.mensaje || 'Procesando...';
+      const msg = progreso.mensaje || "Procesando...";
       progressMsg.textContent = msg;
 
       const detected = detectStageFromMessage(msg);
       if (detected) setStage(detected);
 
-      if (job.status === 'completado') {
+      if (job.status === "completado") {
         clearInterval(interval);
-        STAGE_ORDER.forEach(s => { if (stages[s]) { stages[s].classList.remove('active'); stages[s].classList.add('done'); } });
-        progressBar.style.width = '100%';
-        progressBar.setAttribute('aria-valuenow', 100);
-        progressMsg.textContent = 'Informe generado. Redirigiendo...';
+        STAGE_ORDER.forEach((s) => {
+          if (stages[s]) {
+            stages[s].classList.remove("active");
+            stages[s].classList.add("done");
+          }
+        });
+        progressBar.style.width = "100%";
+        progressBar.setAttribute("aria-valuenow", 100);
+        progressMsg.textContent = "Informe generado. Redirigiendo...";
         window.location.href = `/report/${jobId}`;
-      } else if (job.status === 'error') {
+      } else if (job.status === "error") {
         clearInterval(interval);
-        showError(progreso.mensaje || 'Ocurrió un error durante el análisis.');
+        showError(progreso.mensaje || "Ocurrió un error durante el análisis.");
       }
     } catch (err) {
       clearInterval(interval);
-      showError('Se perdió la conexión con el servidor. Inténtalo de nuevo.');
+      showError("Se perdió la conexión con el servidor. Inténtalo de nuevo.");
     }
   }, 3000);
 }
 
 // ── Form submit ──
 if (form) {
-  form.addEventListener('submit', async e => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearError();
 
-    if (!fileInput.files.length) { showError('Selecciona un archivo antes de continuar.'); return; }
+    // Validación del documento principal
+    if (!fileInput.files.length) {
+      showError("Selecciona un archivo antes de continuar.");
+      return;
+    }
     const err = validateFile(fileInput.files[0]);
-    if (err) { showError(err); return; }
+    if (err) {
+      showError(err);
+      return;
+    }
+
+    // Validación de los archivos del corpus (si se ha seleccionado este modo)
+    if (scanModeSelect && scanModeSelect.value === "corpus") {
+      const cFiles = corpusFilesInput.files;
+      if (!cFiles.length) {
+        showError(
+          "Debes seleccionar al menos un archivo de referencia para el corpus local.",
+        );
+        return;
+      }
+      if (cFiles.length > 10) {
+        showError("No puedes subir más de 10 archivos para el corpus local.");
+        return;
+      }
+      for (let i = 0; i < cFiles.length; i++) {
+        if (cFiles[i].size > 5 * 1024 * 1024) {
+          // 5 MB
+          showError(
+            `El archivo "${cFiles[i].name}" supera el tamaño máximo permitido de 5 MB.`,
+          );
+          return;
+        }
+        const ext = cFiles[i].name.split(".").pop().toLowerCase();
+        if (!["pdf", "docx", "txt"].includes(ext)) {
+          showError(
+            `El archivo "${cFiles[i].name}" tiene un formato no soportado.`,
+          );
+          return;
+        }
+      }
+    }
 
     resetStages();
     setProgress(5);
-    progressMsg.textContent = 'Subiendo documento...';
-    spinnerWrap.style.display = 'block';
+    progressMsg.textContent = "Subiendo documento...";
+    spinnerWrap.style.display = "block";
     submitBtn.disabled = true;
-    setStage('upload');
+    setStage("upload");
 
     const formData = new FormData();
-    formData.append('document',  fileInput.files[0]);
-    formData.append('umbral',    umbralInput.value);
-    formData.append('algoritmo', algoritmoSelect.value);
+    formData.append("document", fileInput.files[0]);
+    formData.append("umbral", umbralInput.value);
+    formData.append("algoritmo", algoritmoSelect.value);
+
+    // Adjuntar la selección de modo y los archivos extras si corresponden
+    if (scanModeSelect) {
+      formData.append("scan_mode", scanModeSelect.value);
+      if (scanModeSelect.value === "corpus") {
+        const cFiles = corpusFilesInput.files;
+        for (let i = 0; i < cFiles.length; i++) {
+          formData.append("corpus_files", cFiles[i]);
+        }
+      }
+    }
 
     try {
-      const res  = await fetch('/api/scan', { method: 'POST', body: formData });
+      const res = await fetch("/api/scan", { method: "POST", body: formData });
       const data = await res.json();
-      if (!res.ok) { showError(data.error || 'No se pudo iniciar el análisis.'); return; }
+      if (!res.ok) {
+        showError(data.error || "No se pudo iniciar el análisis.");
+        return;
+      }
       pollJobStatus(data.job_id);
     } catch (err) {
-      showError('No se pudo conectar con el servidor. Inténtalo de nuevo.');
+      showError("No se pudo conectar con el servidor. Inténtalo de nuevo.");
     }
   });
 }

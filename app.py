@@ -13,7 +13,8 @@ from pdf_report import build_pdf_report
 from storage import create_job, get_job, get_job_owner_token
 from tasks import run_plagiarism_scan
 from similarity_engine import ALGORITHM_CHOICES
-
+import tempfile
+import shutil
 
 app = Flask(__name__)
 
@@ -165,11 +166,11 @@ def _validate_real_mime(file, extension):
 @limiter.limit("5 per hour")
 def scan_document():
     if "document" not in request.files:
-        return jsonify({"error": "No se ha subido ningun archivo."}), 400
+        return jsonify({"error": "No se ha subido ningún archivo."}), 400
 
     file = request.files["document"]
     if file.filename == "":
-        return jsonify({"error": "El nombre del archivo esta vacio."}), 400
+        return jsonify({"error": "El nombre del archivo está vacío."}), 400
 
     extension = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
 
@@ -187,10 +188,52 @@ def scan_document():
         if algoritmo not in ALGORITHM_CHOICES:
             algoritmo = "combinado"
 
+        scan_mode = request.form.get("scan_mode", "web")
+
         safe_filename = os.path.basename(file.filename)[:120]
         owner_token = _current_owner_token()
         job_id = create_job(safe_filename, owner_token)
-        run_plagiarism_scan.delay(job_id, texto_documento, safe_filename, umbral, algoritmo)
+
+        # ── NUEVA RAMIFICACIÓN PARA EL CORPUS LOCAL ──
+        if scan_mode == "corpus":
+            corpus_files = request.files.getlist("corpus_files")
+            if not corpus_files or corpus_files[0].filename == "":
+                return jsonify({"error": "Debes seleccionar al menos un archivo para el corpus local."}), 400
+            if len(corpus_files) > 10:
+                return jsonify({"error": "No puedes subir más de 10 archivos para el corpus."}), 400
+
+            # Crear directorio temporal único y seguro para este análisis
+            corpus_dir = tempfile.mkdtemp(prefix="corpus_scan_")
+            corpus_filenames = []
+
+            for c_file in corpus_files:
+                c_ext = c_file.filename.rsplit(".", 1)[-1].lower() if "." in c_file.filename else ""
+                try:
+                    _validate_real_mime(c_file, c_ext)
+                    
+                    # Medir tamaño del archivo enviado
+                    c_file.seek(0, os.SEEK_END)
+                    c_size = c_file.tell()
+                    c_file.seek(0)
+                    if c_size > 5 * 1024 * 1024: # Límite de 5MB por política de privacidad/rendimiento
+                        raise ValueError(f"El archivo '{c_file.filename}' supera el límite de 5 MB.")
+
+                    safe_c_name = os.path.basename(c_file.filename)
+                    target_path = os.path.join(corpus_dir, safe_c_name)
+                    c_file.save(target_path)
+                    corpus_filenames.append(safe_c_name)
+                except ValueError as ve:
+                    # Si falla la validación de algún archivo del corpus, destruimos el temporal de inmediato
+                    shutil.rmtree(corpus_dir)
+                    return jsonify({"error": f"Error en archivo de corpus: {str(ve)}"}), 400
+
+            # Encolar la tarea del corpus local creada en el paso anterior
+            from tasks import run_local_corpus_scan
+            run_local_corpus_scan.delay(job_id, texto_documento, safe_filename, corpus_dir, corpus_filenames, umbral, algoritmo)
+        
+        else:
+            # Encolar búsqueda tradicional en internet
+            run_plagiarism_scan.delay(job_id, texto_documento, safe_filename, umbral, algoritmo)
 
         return jsonify({"status": "queued", "job_id": job_id}), 202
 

@@ -9,6 +9,7 @@ from web_search import extract_smart_queries, search_google, scrape_and_clean_ur
 from storage import update_job_progress, complete_job, fail_job
 from document_handler import extract_text_from_path
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from storage import purge_old_jobs
 
 logger = logging.getLogger("plagiarism_checker")
 
@@ -39,6 +40,18 @@ def _score_only(url, texto_documento, consulta, texto_web, idf, umbral, algoritm
         }
     return None
 
+@celery.task(bind=True)
+def purge_old_jobs_task(self):
+    """
+    Tarea programada para limpiar registros de trabajos y documentos antiguos en la base de datos.
+    Se ejecuta diariamente según lo programado en celery_app.py.
+    """
+    try:
+        logger.info("Iniciando purga automática de trabajos antiguos...")
+        purge_old_jobs()
+        logger.info("Purga de trabajos antiguos completada con éxito.")
+    except Exception as e:
+        logger.error("Error inesperado durante la purga de trabajos antiguos: %s", e)
 
 @celery.task(bind=True, soft_time_limit=280, time_limit=300)
 def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=5.0, algoritmo="combinado"):
