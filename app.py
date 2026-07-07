@@ -320,6 +320,10 @@ def download_pdf(job_id):
         download_name="reporte_plagio.pdf"
     )
 
+@app.route("/docs")
+def view_docs():
+    """Endpoint estático para la documentación de la API (Issue #11)."""
+    return render_template("docs.html")
 
 if __name__ == "__main__":
     app.run(debug=app.config["DEBUG"])

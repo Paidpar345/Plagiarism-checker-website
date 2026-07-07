@@ -180,10 +180,16 @@ def calculate_similarity_report(text_a, text_b, idf=None, top_n_matches=3, algor
             best_idx = torch.argmax(cos_scores).item()
             best_score = cos_scores[best_idx].item()
             if best_score > 0.75:
+                # Calcular la posición exacta de la frase en el texto original
+                offset_start = text_a.find(sa)
+                offset_end = offset_start + len(sa) if offset_start != -1 else -1
+                
                 matches.append({
                     "frase_original": sa,
                     "frase_web": sample_b[best_idx],
-                    "coincidencia": round(best_score * 100, 2)
+                    "coincidencia": round(best_score * 100, 2),
+                    "offset_start": offset_start,
+                    "offset_end": offset_end
                 })
 
     matches.sort(key=lambda m: m["coincidencia"], reverse=True)

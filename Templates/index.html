@@ -293,8 +293,15 @@
         font-size: 0.82rem;
         margin-top: 3px;
       }
-      #document {
-        display: none;
+
+      #document,
+      #corpusFiles {
+        width: 0.1px;
+        height: 0.1px;
+        opacity: 0;
+        overflow: hidden;
+        position: absolute;
+        z-index: -1;
       }
 
       /* ── File info card ── */

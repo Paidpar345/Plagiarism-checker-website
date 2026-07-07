@@ -87,9 +87,10 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
 
         if not all_url_tasks:
             complete_job(job_id, {
-                "similitud_global": 0.0,
-                "resultados": [],
-                "documento": documento_nombre
+            "similitud_global": overall,
+            "resultados": resultados_finales,
+            "documento": documento_nombre,
+            "texto_original": texto_documento  # <-- NUEVO: Guardar texto completo para la UI
             })
             return
 
@@ -115,7 +116,8 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
             complete_job(job_id, {
                 "similitud_global": 0.0,
                 "resultados": [],
-                "documento": documento_nombre
+                "documento": documento_nombre,
+                "texto_original": texto_documento
             })
             return
 
@@ -155,7 +157,8 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
         complete_job(job_id, {
             "similitud_global": overall,
             "resultados": resultados_finales,
-            "documento": documento_nombre
+            "documento": documento_nombre,
+            "texto_original": texto_documento  # <-- NUEVO: Guardar texto completo para la UI
         })
 
     except Exception as e:
@@ -198,9 +201,10 @@ def run_local_corpus_scan(self, job_id, texto_documento, documento_nombre,
         # A PARTIR DE AQUÍ COMIENZA EL CÓDIGO COMPLETADO:
         if not corpus_texts:
             complete_job(job_id, {
-                "similitud_global": 0.0,
-                "resultados": [],
-                "documento": documento_nombre
+            "similitud_global": overall,
+            "resultados": resultados_finales,
+            "documento": documento_nombre,
+            "texto_original": texto_documento  # <-- NUEVO: Guardar texto completo para la UI
             })
             return
 
@@ -221,7 +225,8 @@ def run_local_corpus_scan(self, job_id, texto_documento, documento_nombre,
         complete_job(job_id, {
             "similitud_global": overall,
             "resultados": resultados_finales,
-            "documento": documento_nombre
+            "documento": documento_nombre,
+            "texto_original": texto_documento  # <-- NUEVO: Guardar texto completo para la UI
         })
 
     except Exception as e:
