@@ -1,8 +1,13 @@
+import os
+import shutil
 import logging
 from celery_app import celery
-from similarity_engine import calculate_similarity_report, compute_idf, clean_and_tokenize
+from similarity_engine import (
+    calculate_similarity_report, compute_idf, clean_and_tokenize, compare_corpus
+)
 from web_search import extract_smart_queries, search_google, scrape_and_clean_url
 from storage import update_job_progress, complete_job, fail_job
+from document_handler import extract_text_from_path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger("plagiarism_checker")
@@ -10,21 +15,16 @@ logger = logging.getLogger("plagiarism_checker")
 # ── Stage message constants (must match regex in static/js/main.js) ──────────
 # Stage 1 → /subiendo|upload/i
 # Stage 2 → /procesando|extrayendo/i
-# Stage 3 → /buscando|web/i
+# Stage 3 → /buscando|web/i  OR  /comparando corpus/i
 # Stage 4 → /generando|informe/i
-MSG_UPLOAD   = "Subiendo documento..."
-MSG_PROCESS  = "Procesando texto y extrayendo frases clave..."
-MSG_SEARCH   = "Buscando coincidencias en la web..."
-MSG_GENERATE = "Generando informe de resultados..."
+MSG_UPLOAD        = "Subiendo documento..."
+MSG_PROCESS       = "Procesando texto y extrayendo frases clave..."
+MSG_SEARCH        = "Buscando coincidencias en la web..."
+MSG_CORPUS        = "Comparando contra corpus local..."
+MSG_GENERATE      = "Generando informe de resultados..."
 
 
 def _score_only(url, texto_documento, consulta, texto_web, idf, umbral, algoritmo):
-    # FIX (diseno): esta funcion ya NO vuelve a raspar la URL. El texto
-    # scrapeado se pasa como parametro porque ya se obtuvo en la primera
-    # pasada (ver run_plagiarism_scan). Antes se llamaba a
-    # scrape_and_clean_url() dos veces por cada URL (una para construir el
-    # corpus del IDF y otra para puntuar), duplicando llamadas pagadas a la
-    # API de scraping y el tiempo total de la tarea.
     report = calculate_similarity_report(texto_documento, texto_web, idf=idf, algoritmo=algoritmo)
     if report["similitud"] > umbral:
         return {
@@ -42,9 +42,6 @@ def _score_only(url, texto_documento, consulta, texto_web, idf, umbral, algoritm
 
 @celery.task(bind=True, soft_time_limit=280, time_limit=300)
 def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=5.0, algoritmo="combinado"):
-    # FIX (seguridad/diseno): se anaden soft_time_limit/time_limit al task
-    # para que un job nunca quede "colgado" indefinidamente en estado
-    # "procesando" si una llamada externa (scrape.do) no responde nunca.
     try:
         # ── Stage 1: Subiendo ─────────────────────────────────────────────
         update_job_progress(job_id, MSG_UPLOAD, 0, 4)
@@ -89,9 +86,6 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
             2, 4
         )
 
-        # FIX (diseno): unica pasada de scraping. Se guarda el texto de cada
-        # URL en un diccionario para reutilizarlo tanto en el calculo del
-        # IDF como en el scoring, evitando el doble scraping anterior.
         scraped_by_url = {}
         with ThreadPoolExecutor(max_workers=4) as executor:
             futures_scrape = {executor.submit(scrape_and_clean_url, url): url for url, _ in all_url_tasks}
@@ -121,12 +115,6 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
         # ── Stage 4: Generando ───────────────────────────────────────────
         update_job_progress(job_id, MSG_GENERATE, 3, 4)
 
-        # FIX (diseno): el calculo de similitud es CPU-bound (TF-IDF,
-        # n-gramas, shingling y comparacion de oraciones); un ThreadPoolExecutor
-        # no acelera este trabajo por el GIL. Se mantiene ThreadPoolExecutor
-        # solo por simplicidad de despliegue (evitar pickling de closures con
-        # ProcessPoolExecutor), pero ya no hace I/O duplicado, que era el
-        # cuello de botella real.
         with ThreadPoolExecutor(max_workers=4) as executor:
             futures = [
                 executor.submit(
@@ -162,9 +150,37 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
         fail_job(job_id, "Ocurrio un error inesperado durante el analisis. Intentalo de nuevo.")
 
 
-@celery.task
-def purge_old_jobs_task():
-    from storage import purge_old_jobs
-    from cache_utils import purge_expired_cache
-    purge_old_jobs()
-    purge_expired_cache()
+@celery.task(bind=True, soft_time_limit=280, time_limit=300)
+def run_local_corpus_scan(self, job_id, texto_documento, documento_nombre,
+                          corpus_dir, corpus_filenames, umbral=5.0, algoritmo="combinado"):
+    """
+    Pipeline de comparación local (issue #9).
+    Compara texto_documento contra cada archivo del corpus_dir.
+    Elimina corpus_dir al terminar (privacidad).
+    """
+    try:
+        # ── Stage 1: Subiendo ─────────────────────────────────────────────
+        update_job_progress(job_id, MSG_UPLOAD, 0, 4)
+
+        # ── Stage 2: Procesando ──────────────────────────────────────────
+        update_job_progress(job_id, MSG_PROCESS, 1, 4)
+
+        if not texto_documento or not texto_documento.strip():
+            fail_job(job_id, "No se pudo extraer contenido legible del documento principal.")
+            return
+
+        # ── Stage 3: Comparando corpus ───────────────────────────────────
+        update_job_progress(job_id, MSG_CORPUS, 2, 4)
+
+        corpus_texts = []
+        for filename in corpus_filenames:
+            filepath = os.path.join(corpus_dir, filename)
+            try:
+                texto = extract_text_from_path(filepath)
+                if texto and texto.strip():
+                    corpus_texts.append((filename, texto))
+            except Exception as e:
+                logger.warning("No se pudo leer archivo de corpus '%s': %s", filename, e)
+
+        if not corpus_texts:
+            complete_job(job_id, {

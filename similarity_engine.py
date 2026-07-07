@@ -9,7 +9,6 @@ import torch
 from sentence_transformers import SentenceTransformer, util
 
 # Carga del modelo NLP en memoria (se hace una sola vez al iniciar el worker).
-# Usamos un modelo multilingüe ligero y muy rápido.
 nlp_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 
 STOP_WORDS = {
@@ -130,15 +129,9 @@ def semantic_similarity(text_a, text_b):
     """Calcula la similitud de significado entre dos textos usando Inteligencia Artificial."""
     if not text_a.strip() or not text_b.strip():
         return 0.0
-    
-    # El modelo convierte los textos en vectores (embeddings)
     embedding_a = nlp_model.encode(text_a, convert_to_tensor=True)
     embedding_b = nlp_model.encode(text_b, convert_to_tensor=True)
-    
-    # Comparamos los vectores usando Similitud Coseno
     cosine_score = util.cos_sim(embedding_a, embedding_b)
-    
-    # Extraemos el valor y lo convertimos a porcentaje
     return round(cosine_score.item() * 100, 2)
 
 
@@ -155,15 +148,9 @@ ALGORITHM_CHOICES = {
 
 
 def calculate_similarity_report(text_a, text_b, idf=None, top_n_matches=3, algoritmo="combinado"):
-    """
-    Calcula la similitud integrando IA semántica para detectar paráfrasis profunda
-    y engaños por sinónimos o traducciones.
-    """
     tfidf_score = tfidf_cosine_similarity(text_a, text_b, idf=idf)
     ngram_score = ngram_similarity(text_a, text_b, n=4)
     shingle_score = shingle_overlap_ratio(text_a, text_b)
-    
-    # Calculamos la similitud semántica general
     semantic_score = semantic_similarity(text_a, text_b)
 
     if algoritmo == "tfidf":
@@ -173,8 +160,6 @@ def calculate_similarity_report(text_a, text_b, idf=None, top_n_matches=3, algor
     elif algoritmo == "shingling":
         combined_score = shingle_score
     else:
-        # Ponderación del algoritmo combinado:
-        # IA Semántica (40%), N-gramas (25%), Shingling (20%), TF-IDF (15%)
         combined_score = round(
             (semantic_score * 0.40) + (tfidf_score * 0.15) + (ngram_score * 0.25) + (shingle_score * 0.20), 2
         )
@@ -185,25 +170,15 @@ def calculate_similarity_report(text_a, text_b, idf=None, top_n_matches=3, algor
     matches = []
     if sentences_a and sentences_b:
         sample_b = sentences_b[:80]
-        # Codificamos todas las frases de la web de golpe por eficiencia de la CPU/GPU
         embeddings_b = nlp_model.encode(sample_b, convert_to_tensor=True)
-        
         for sa in sentences_a[:80]:
             tokens_sa = clean_and_tokenize(sa)
             if not tokens_sa:
                 continue
-            
-            # Codificamos la frase del documento evaluado
             emb_a = nlp_model.encode(sa, convert_to_tensor=True)
-            
-            # Comparamos la frase del usuario contra TODAS las de la web de una sola vez
             cos_scores = util.cos_sim(emb_a, embeddings_b)[0]
-            
-            # Obtenemos el mejor resultado
             best_idx = torch.argmax(cos_scores).item()
             best_score = cos_scores[best_idx].item()
-            
-            # Si el significado coincide en más de un 75%, se marca como plagio probable
             if best_score > 0.75:
                 matches.append({
                     "frase_original": sa,
@@ -218,9 +193,48 @@ def calculate_similarity_report(text_a, text_b, idf=None, top_n_matches=3, algor
         "similitud_tfidf": tfidf_score,
         "similitud_ngramas": ngram_score,
         "similitud_shingling": shingle_score,
-        "similitud_semantica": semantic_score, # Nueva métrica añadida al diccionario
+        "similitud_semantica": semantic_score,
         "frases_similares": matches[:top_n_matches]
     }
+
+
+def compare_corpus(doc_text, corpus_texts, umbral=5.0, algoritmo="combinado"):
+    """
+    Compara doc_text contra cada texto del corpus local.
+
+    corpus_texts: lista de tuplas (nombre_archivo, texto)
+    Devuelve la misma estructura de resultados que el pipeline web,
+    compatible con report.html.
+    """
+    if not corpus_texts:
+        return []
+
+    # Construir IDF con todos los textos del corpus + documento principal
+    all_texts = [doc_text] + [t for _, t in corpus_texts]
+    corpus_tokens = [clean_and_tokenize(t) for t in all_texts]
+    idf = compute_idf(corpus_tokens)
+
+    resultados = []
+    for nombre, texto_corpus in corpus_texts:
+        if not texto_corpus or not texto_corpus.strip():
+            continue
+        report = calculate_similarity_report(
+            doc_text, texto_corpus, idf=idf, algoritmo=algoritmo
+        )
+        if report["similitud"] > umbral:
+            resultados.append({
+                "consulta": nombre,
+                "url": f"corpus://{nombre}",
+                "similitud": report["similitud"],
+                "similitud_tfidf": report["similitud_tfidf"],
+                "similitud_ngramas": report["similitud_ngramas"],
+                "similitud_shingling": report["similitud_shingling"],
+                "similitud_semantica": report.get("similitud_semantica", 0),
+                "frases_similares": report["frases_similares"],
+            })
+
+    resultados.sort(key=lambda x: x["similitud"], reverse=True)
+    return resultados
 
 
 def build_highlighted_html(original_text, matches):

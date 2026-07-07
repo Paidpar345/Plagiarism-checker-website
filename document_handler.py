@@ -8,11 +8,12 @@ logger = logging.getLogger("plagiarism_checker")
 ALLOWED_EXTENSIONS = {"docx", "pdf", "txt"}
 MAX_CHARS = 200_000
 
-# FIX (seguridad): limites anti "bomba de archivos". Un PDF/DOCX pequeno en
-# bytes puede expandirse en miles de paginas/parrafos y agotar CPU/memoria
-# del worker antes de llegar al recorte por MAX_CHARS.
 MAX_PDF_PAGES = 300
 MAX_DOCX_PARAGRAPHS = 20000
+
+# Límites para archivos del corpus local (issue #9)
+CORPUS_MAX_FILES = 10
+CORPUS_MAX_BYTES = 5 * 1024 * 1024  # 5 MB por archivo
 
 
 def allowed_file(filename):
@@ -85,5 +86,39 @@ def process_uploaded_file(file):
 
     if not text or not text.strip():
         raise ValueError("No se pudo extraer texto legible del documento.")
+
+    return text[:MAX_CHARS]
+
+
+def extract_text_from_path(filepath):
+    """
+    Extrae texto de un archivo ya guardado en disco (usado por el pipeline
+    de corpus local, issue #9). Reutiliza los mismos extractores que
+    process_uploaded_file para mantener coherencia.
+    """
+    if not os.path.isfile(filepath):
+        raise ValueError(f"Archivo no encontrado: {filepath}")
+
+    extension = filepath.rsplit(".", 1)[-1].lower() if "." in filepath else ""
+    if extension not in ALLOWED_EXTENSIONS:
+        raise ValueError(f"Extension no permitida: {extension}")
+
+    try:
+        if extension == "docx":
+            with open(filepath, "rb") as fh:
+                text = extract_text_from_docx(fh)
+        elif extension == "pdf":
+            with open(filepath, "rb") as fh:
+                text = extract_text_from_pdf(fh)
+        elif extension == "txt":
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as fh:
+                text = fh.read()
+        else:
+            raise ValueError("Tipo de archivo no soportado.")
+    except ValueError:
+        raise
+    except Exception as e:
+        logger.error("Error leyendo archivo de corpus %s: %s", filepath, e)
+        raise ValueError("No se pudo leer el contenido del archivo del corpus.")
 
     return text[:MAX_CHARS]
