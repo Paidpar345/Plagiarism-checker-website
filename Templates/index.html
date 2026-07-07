@@ -5,181 +5,341 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Detector de Plagio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
       :root {
         --bg-1: #0f1729;
         --bg-2: #1a2340;
         --accent: #6366f1;
         --accent-2: #8b5cf6;
-        --accent-glow: rgba(99, 102, 241, 0.35);
+        --accent-glow: rgba(99,102,241,0.4);
         --text-main: #e8ecf7;
         --text-muted: #9aa4c0;
-        --card-bg: rgba(255, 255, 255, 0.06);
-        --card-border: rgba(255, 255, 255, 0.12);
-        --danger: #f87171;
-        --warn: #fbbf24;
+        --card-bg: rgba(255,255,255,0.06);
+        --card-border: rgba(255,255,255,0.12);
         --ok: #34d399;
         --radius: 18px;
       }
 
-      * {
-        box-sizing: border-box;
-      }
+      *, *::before, *::after { box-sizing: border-box; }
 
       body {
-        font-family:
-          "Inter",
-          -apple-system,
-          sans-serif;
-        background:
-          radial-gradient(circle at 20% 0%, #1e2a4f 0%, var(--bg-1) 55%),
-          radial-gradient(circle at 90% 90%, #2a1e4f33 0%, transparent 60%);
+        font-family: "Inter", -apple-system, sans-serif;
         background-color: var(--bg-1);
+        background-image:
+          radial-gradient(ellipse 80% 50% at 15% -10%, rgba(99,102,241,0.18) 0%, transparent 60%),
+          radial-gradient(ellipse 60% 40% at 85% 100%, rgba(139,92,246,0.15) 0%, transparent 55%),
+          radial-gradient(ellipse 40% 30% at 60% 40%, rgba(99,102,241,0.07) 0%, transparent 50%);
         color: var(--text-main);
         min-height: 100vh;
+        overflow-x: hidden;
       }
 
+      /* Decorative grid */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+        background-size: 48px 48px;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* Decorative blobs */
+      .blob {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(80px);
+        pointer-events: none;
+        z-index: 0;
+        animation: blobFloat 8s ease-in-out infinite alternate;
+      }
+      .blob-1 { width: 340px; height: 340px; background: rgba(99,102,241,0.10); top: -80px; left: -80px; animation-delay: 0s; }
+      .blob-2 { width: 260px; height: 260px; background: rgba(139,92,246,0.09); bottom: 60px; right: -60px; animation-delay: 3s; }
+      @keyframes blobFloat {
+        from { transform: translate(0,0) scale(1); }
+        to   { transform: translate(18px,14px) scale(1.05); }
+      }
+
+      .page-content { position: relative; z-index: 1; }
+
+      /* ── Hero ── */
       .hero {
         text-align: center;
-        padding: 4rem 1rem 2.5rem;
+        padding: 2.8rem 1rem 2rem;
       }
-      .hero .badge-eyebrow {
-        display: inline-block;
-        padding: 0.35rem 0.9rem;
+      .badge-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.32rem 0.9rem;
         border-radius: 999px;
         background: var(--card-bg);
         border: 1px solid var(--card-border);
         color: var(--accent-2);
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         font-weight: 600;
         letter-spacing: 0.04em;
-        margin-bottom: 1.2rem;
+        margin-bottom: 1rem;
+      }
+      .badge-eyebrow .dot {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: var(--accent-2);
+        animation: pulse 2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,100% { opacity: 1; transform: scale(1); }
+        50%      { opacity: 0.5; transform: scale(1.4); }
       }
       .hero h1 {
         font-weight: 800;
-        font-size: clamp(2rem, 4.5vw, 3rem);
+        font-size: clamp(1.9rem, 4vw, 2.8rem);
         background: linear-gradient(135deg, #fff 20%, #b6c2f0 100%);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
         letter-spacing: -0.02em;
+        margin-bottom: 0.6rem;
       }
       .hero p {
         color: var(--text-muted);
-        font-size: 1.05rem;
-        max-width: 560px;
-        margin: 0.75rem auto 0;
+        font-size: 1rem;
+        max-width: 500px;
+        margin: 0 auto;
       }
+
+      /* ── Card ── */
       .glass-card {
         background: var(--card-bg);
         border: 1px solid var(--card-border);
         border-radius: var(--radius);
-        backdrop-filter: blur(18px);
-        -webkit-backdrop-filter: blur(18px);
-        box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        box-shadow: 0 24px 64px -24px rgba(0,0,0,0.55);
       }
+
+      /* ── Upload zone ── */
       .upload-zone {
         display: block;
         width: 100%;
         border: 2px dashed var(--card-border);
         border-radius: 14px;
-        padding: 2.2rem 1.5rem;
+        padding: 2.4rem 1.5rem;
         text-align: center;
         cursor: pointer;
-        transition:
-          border-color 0.2s ease,
-          background 0.2s ease;
-        background: rgba(255, 255, 255, 0.02);
+        transition: border-color 0.2s, background 0.2s, transform 0.15s;
+        background: rgba(255,255,255,0.02);
+        position: relative;
+        overflow: hidden;
       }
       .upload-zone:hover,
       .upload-zone.dragover {
         border-color: var(--accent);
-        background: rgba(99, 102, 241, 0.08);
+        background: rgba(99,102,241,0.07);
+        transform: translateY(-1px);
       }
-      .upload-zone svg {
+      .upload-zone:focus-within {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .upload-zone .uz-icon {
         color: var(--accent-2);
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.7rem;
+        animation: floatIcon 3s ease-in-out infinite;
       }
-      .upload-zone .file-name {
-        margin-top: 0.6rem;
-        font-size: 0.9rem;
-        color: var(--text-main);
+      @keyframes floatIcon {
+        0%,100% { transform: translateY(0); }
+        50%      { transform: translateY(-5px); }
+      }
+      .upload-zone .uz-title {
         font-weight: 600;
-        word-break: break-all;
+        font-size: 1rem;
+        color: var(--text-main);
       }
-      #document {
+      .upload-zone .uz-sub {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        margin-top: 3px;
+      }
+      #document { display: none; }
+
+      /* ── File info card ── */
+      #fileInfo {
         display: none;
+        border-radius: 12px;
+        background: rgba(52,211,153,0.07);
+        border: 1px solid rgba(52,211,153,0.25);
+        padding: 0.85rem 1rem;
+        margin-top: 0.75rem;
+        align-items: center;
+        gap: 0.75rem;
       }
-      .form-label {
+      #fileInfo.show { display: flex; }
+      .fi-icon { color: var(--ok); flex-shrink: 0; }
+      .fi-name { font-weight: 600; font-size: 0.92rem; word-break: break-all; }
+      .fi-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 1px; }
+      .fi-badge {
+        margin-left: auto;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        background: rgba(52,211,153,0.15);
+        color: var(--ok);
+        border: 1px solid rgba(52,211,153,0.3);
+        flex-shrink: 0;
+      }
+
+      /* ── Slider ── */
+      .slider-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+      .form-range::-webkit-slider-thumb { background: var(--accent); }
+      .form-range::-moz-range-thumb     { background: var(--accent); }
+      .form-range::-webkit-slider-runnable-track { background: rgba(255,255,255,0.12); border-radius: 999px; }
+      .form-range:focus { outline: none; }
+      .form-range:focus::-webkit-slider-thumb {
+        box-shadow: 0 0 0 3px var(--accent-glow);
+      }
+
+      /* ── Advanced options accordion ── */
+      .accordion-item-custom {
+        background: transparent;
+        border: 1px solid var(--card-border);
+        border-radius: 12px !important;
+        overflow: hidden;
+      }
+      .accordion-button-custom {
+        background: rgba(255,255,255,0.03);
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+        border: none;
+        width: 100%;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+        border-radius: 12px;
+      }
+      .accordion-button-custom:hover { background: rgba(255,255,255,0.06); color: var(--text-main); }
+      .accordion-button-custom[aria-expanded="true"] { color: var(--text-main); border-radius: 12px 12px 0 0; }
+      .accordion-button-custom .chevron {
+        margin-left: auto;
+        transition: transform 0.25s;
+      }
+      .accordion-button-custom[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+      .accordion-body-custom {
+        padding: 1rem;
+        background: rgba(255,255,255,0.02);
+        border-top: 1px solid var(--card-border);
+      }
+      .form-label-custom {
         color: var(--text-muted);
         font-weight: 500;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
       }
       .algo-select {
-        background-color: rgba(255, 255, 255, 0.05);
+        background-color: rgba(255,255,255,0.05);
         border: 1px solid var(--card-border);
         color: var(--text-main);
         border-radius: 10px;
-        padding: 0.55rem 0.8rem;
+        padding: 0.5rem 0.8rem;
         font-size: 0.9rem;
+        width: 100%;
+        transition: border-color 0.15s, box-shadow 0.15s;
       }
       .algo-select:focus {
-        background-color: rgba(255, 255, 255, 0.08);
+        outline: none;
         border-color: var(--accent);
-        color: var(--text-main);
-        box-shadow: 0 0 0 0.2rem var(--accent-glow);
-      }
-      .algo-select option {
-        background-color: var(--bg-2);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+        background-color: rgba(255,255,255,0.08);
         color: var(--text-main);
       }
+      .algo-select option { background-color: var(--bg-2); color: var(--text-main); }
       .algo-hint {
         color: var(--text-muted);
-        font-size: 0.78rem;
+        font-size: 0.77rem;
         margin-top: 0.4rem;
       }
-      .form-range::-webkit-slider-thumb {
-        background: var(--accent);
-      }
-      .form-range::-moz-range-thumb {
-        background: var(--accent);
-      }
-      .form-range::-webkit-slider-runnable-track {
-        background: rgba(255, 255, 255, 0.15);
-      }
-      .btn-gradient {
+
+      /* ── CTA button ── */
+      .btn-analyze {
         background: linear-gradient(135deg, var(--accent), var(--accent-2));
         border: none;
         color: #fff;
         font-weight: 700;
-        padding: 0.8rem 1.5rem;
-        border-radius: 12px;
-        transition:
-          transform 0.15s ease,
-          box-shadow 0.15s ease;
-        box-shadow: 0 10px 30px -10px var(--accent-glow);
+        font-size: 1.05rem;
+        padding: 0.9rem 1.5rem;
+        border-radius: 14px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        transition: transform 0.15s, box-shadow 0.15s;
+        box-shadow: 0 10px 36px -10px var(--accent-glow), 0 0 0 0 var(--accent-glow);
+        cursor: pointer;
       }
-      .btn-gradient:hover {
+      .btn-analyze:hover {
         transform: translateY(-2px);
-        box-shadow: 0 14px 34px -8px var(--accent-glow);
+        box-shadow: 0 16px 40px -8px var(--accent-glow), 0 0 0 6px rgba(99,102,241,0.12);
         color: #fff;
       }
-      .btn-gradient:disabled {
-        opacity: 0.6;
-        transform: none;
+      .btn-analyze:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      .btn-analyze:disabled { opacity: 0.55; transform: none; cursor: not-allowed; box-shadow: none; }
+      .btn-analyze svg { flex-shrink: 0; }
+
+      /* ── Progress ── */
+      .progress-wrap { margin-top: 1.25rem; }
+      .progress-stages {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        gap: 4px;
+      }
+      .stage {
+        flex: 1;
+        text-align: center;
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        padding: 0.3rem 0.2rem;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid transparent;
+        transition: color 0.3s, background 0.3s, border-color 0.3s;
+      }
+      .stage.active {
+        color: var(--accent-2);
+        background: rgba(139,92,246,0.12);
+        border-color: rgba(139,92,246,0.3);
+      }
+      .stage.done {
+        color: var(--ok);
+        background: rgba(52,211,153,0.08);
+        border-color: rgba(52,211,153,0.2);
       }
       .progress-custom {
-        height: 10px;
+        height: 8px;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.08);
+        background: rgba(255,255,255,0.08);
         overflow: hidden;
       }
       .progress-custom .bar {
@@ -188,148 +348,202 @@
         border-radius: 999px;
         transition: width 0.4s ease;
       }
+      .progress-msg {
+        text-align: center;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+      }
+
+      /* ── Error ── */
       .alert-custom {
         border-radius: 12px;
-        border: 1px solid rgba(248, 113, 113, 0.35);
-        background: rgba(248, 113, 113, 0.1);
+        border: 1px solid rgba(248,113,113,0.35);
+        background: rgba(248,113,113,0.08);
         color: #fecaca;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        padding: 0.85rem 1rem;
       }
-      footer.credit {
-        text-align: center;
-        color: var(--text-muted);
+
+      /* ── Footer ── */
+      .trust-footer {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1.5rem;
+        padding: 2rem 1rem 1.25rem;
+      }
+      .trust-item {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
         font-size: 0.8rem;
-        padding: 2rem 0 1rem;
+        color: var(--text-muted);
       }
-      .container-narrow {
-        max-width: 640px !important;
-        margin-left: auto;
-        margin-right: auto;
-      }
-      ::selection {
-        background: var(--accent-glow);
-      }
+      .trust-item svg { color: var(--ok); flex-shrink: 0; }
+
+      /* ── Misc ── */
+      .container-narrow { max-width: 620px !important; margin-inline: auto; }
+      ::selection { background: var(--accent-glow); }
     </style>
   </head>
   <body>
-    <div class="hero">
-      <span class="badge-eyebrow">Analisis inteligente de similitud</span>
-      <h1>Detector de Plagio</h1>
-      <p>
-        Sube tu documento y lo compararemos con contenido publicado en la web
-        usando TF-IDF, n-gramas y fingerprinting.
-      </p>
-    </div>
+    <div class="blob blob-1" aria-hidden="true"></div>
+    <div class="blob blob-2" aria-hidden="true"></div>
 
-    <div class="container-narrow px-3 pb-5">
-      <div class="glass-card p-4 p-md-5">
-        <form id="scanForm" novalidate>
-          <label class="upload-zone" id="uploadZone" for="document">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="34"
-              height="34"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-              <polyline points="7 9 12 4 17 9" />
-              <line x1="12" y1="4" x2="12" y2="16" />
-            </svg>
-            <div style="font-weight: 600">
-              Haz clic o arrastra tu archivo aqui
-            </div>
-            <div
-              style="
-                color: var(--text-muted);
-                font-size: 0.82rem;
-                margin-top: 2px;
-              "
-            >
-              Formatos: PDF, DOCX o TXT · Maximo 15 MB
-            </div>
-            <div class="file-name" id="fileNameDisplay"></div>
-          </label>
-          <input
-            type="file"
-            id="document"
-            name="document"
-            accept=".pdf,.docx,.txt"
-            required
-          />
-
-          <div class="mt-4 mb-4">
-            <label class="form-label d-flex justify-content-between">
-              <span>Umbral de similitud minimo</span>
-              <span style="color: var(--text-main); font-weight: 700"
-                ><span id="umbralValue">5</span>%</span
-              >
-            </label>
-            <input
-              type="range"
-              class="form-range"
-              id="umbral"
-              name="umbral"
-              min="1"
-              max="80"
-              value="5"
-            />
-          </div>
-
-          <div class="mb-4">
-            <label class="form-label" for="algoritmo"
-              >Algoritmo de deteccion</label
-            >
-            <select
-              class="form-select algo-select"
-              id="algoritmo"
-              name="algoritmo"
-            >
-              <option value="combinado" selected>
-                Combinado (recomendado)
-              </option>
-              <option value="tfidf">Solo TF-IDF (similitud tematica)</option>
-              <option value="ngramas">Solo N-gramas (parafraseo)</option>
-              <option value="shingling">Solo Shingling (copia exacta)</option>
-            </select>
-            <div class="algo-hint" id="algoHint">
-              Combina las 3 senales para el resultado mas equilibrado.
-            </div>
-          </div>
-
-          <button type="submit" class="btn btn-gradient w-100" id="submitBtn">
-            Analizar documento
-          </button>
-        </form>
-
-        <div class="mt-4" id="spinnerWrap" style="display: none">
-          <div class="progress-custom mb-2">
-            <div class="bar" id="progressBar" style="width: 5%"></div>
-          </div>
-          <p
-            class="mb-0 text-center"
-            style="color: var(--text-muted); font-size: 0.85rem"
-            id="progressMsg"
-          >
-            Iniciando...
-          </p>
+    <div class="page-content">
+      <!-- Hero -->
+      <header class="hero">
+        <div class="badge-eyebrow" aria-hidden="true">
+          <span class="dot"></span>
+          Análisis inteligente de similitud
         </div>
+        <h1>Detector de Plagio</h1>
+        <p>Analiza similitudes textuales y detecta posibles coincidencias con contenido disponible en la web.</p>
+      </header>
 
-        <div id="errorBox" class="alert-custom p-3 mt-3 d-none"></div>
-      </div>
+      <!-- Form card -->
+      <main class="container-narrow px-3 pb-5">
+        <div class="glass-card p-4 p-md-5">
+          <form id="scanForm" novalidate aria-label="Formulario de análisis de plagio">
+
+            <!-- Upload zone -->
+            <label class="upload-zone" id="uploadZone" for="document" aria-label="Zona de carga de archivo">
+              <div class="uz-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+                  <polyline points="7 9 12 4 17 9"/>
+                  <line x1="12" y1="4" x2="12" y2="16"/>
+                </svg>
+              </div>
+              <div class="uz-title">Arrastra tu documento aquí</div>
+              <div class="uz-sub">o haz clic para seleccionarlo &nbsp;·&nbsp; PDF, DOCX o TXT &nbsp;·&nbsp; Máx. 15 MB</div>
+            </label>
+            <input type="file" id="document" name="document" accept=".pdf,.docx,.txt" required aria-required="true" />
+
+            <!-- File info -->
+            <div id="fileInfo" role="status" aria-live="polite">
+              <span class="fi-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </span>
+              <div>
+                <div class="fi-name" id="fiName"></div>
+                <div class="fi-meta" id="fiMeta"></div>
+              </div>
+              <span class="fi-badge" id="fiBadge">LISTO</span>
+            </div>
+
+            <!-- Advanced options (accordion) -->
+            <div class="mt-4" id="advancedAccordion">
+              <button
+                type="button"
+                class="accordion-button-custom"
+                id="advancedToggle"
+                aria-expanded="false"
+                aria-controls="advancedBody"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+                </svg>
+                Opciones avanzadas
+                <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              <div
+                class="accordion-body-custom"
+                id="advancedBody"
+                role="region"
+                aria-labelledby="advancedToggle"
+                hidden
+              >
+                <!-- Threshold -->
+                <div class="mb-4">
+                  <label class="form-label-custom d-flex justify-content-between" for="umbral">
+                    <span>Detectar coincidencias de al menos</span>
+                    <strong style="color:var(--text-main)"><span id="umbralValue">5</span>%</strong>
+                  </label>
+                  <input type="range" class="form-range" id="umbral" name="umbral" min="1" max="80" value="5" aria-valuemin="1" aria-valuemax="80" aria-valuenow="5" />
+                  <div class="slider-labels" aria-hidden="true">
+                    <span>Más sensible</span>
+                    <span>Menos sensible</span>
+                  </div>
+                </div>
+
+                <!-- Algorithm -->
+                <div>
+                  <label class="form-label-custom" for="algoritmo">Modo de análisis</label>
+                  <select class="algo-select" id="algoritmo" name="algoritmo" aria-describedby="algoHint">
+                    <option value="combinado" selected>Equilibrado (recomendado)</option>
+                    <option value="tfidf">Rápido — similitud temática</option>
+                    <option value="ngramas">Preciso — detección de parafraseo</option>
+                    <option value="shingling">Exhaustivo — copia exacta</option>
+                  </select>
+                  <div class="algo-hint" id="algoHint">Combina múltiples señales para el resultado más completo.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CTA -->
+            <button type="submit" class="btn-analyze mt-4" id="submitBtn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              Analizar documento
+            </button>
+          </form>
+
+          <!-- Progress -->
+          <div class="progress-wrap" id="spinnerWrap" style="display:none" aria-live="polite" aria-label="Estado del análisis">
+            <div class="progress-stages" id="progressStages" aria-hidden="true">
+              <div class="stage" id="stage-upload">Subiendo</div>
+              <div class="stage" id="stage-process">Procesando</div>
+              <div class="stage" id="stage-search">Buscando</div>
+              <div class="stage" id="stage-report">Generando informe</div>
+            </div>
+            <div class="progress-custom" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100">
+              <div class="bar" id="progressBar" style="width:5%"></div>
+            </div>
+            <p class="progress-msg" id="progressMsg">Iniciando...</p>
+          </div>
+
+          <!-- Error -->
+          <div id="errorBox" class="alert-custom mt-3 d-none" role="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span id="errorMsg"></span>
+          </div>
+        </div>
+      </main>
+
+      <!-- Trust footer -->
+      <footer class="trust-footer" aria-label="Garantías de privacidad">
+        <div class="trust-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Tus documentos no se almacenan
+        </div>
+        <div class="trust-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Procesamiento seguro
+        </div>
+        <div class="trust-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Resultados en pocos segundos
+        </div>
+      </footer>
     </div>
 
-    <footer class="credit">
-      Deteccion basada en TF-IDF, n-gramas y fingerprinting de shingles.
-    </footer>
-
-    <!-- FIX (seguridad/funcionalidad): script movido a fichero estatico
-         propio (self), en vez de inline, para cumplir la CSP script-src
-         'self' sin necesitar 'unsafe-inline' y sin romper el formulario. -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   </body>
 </html>
