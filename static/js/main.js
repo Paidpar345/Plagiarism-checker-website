@@ -126,13 +126,43 @@ function clearError() {
 
 // ── Stage helpers ──
 const STAGE_ORDER = ['upload', 'process', 'search', 'report'];
+
+// Maps message keyword regexes → stage key.
+// Patterns are ordered from most-specific to least-specific so the first
+// match wins. Must stay in sync with MSG_* constants in tasks.py.
+const STAGE_PATTERNS = [
+  { re: /subiendo|uploading/i,                   stage: 'upload'  },
+  { re: /procesando|extrayendo|frases clave/i,   stage: 'process' },
+  { re: /buscando|consulta|web|páginas encontradas/i, stage: 'search' },
+  { re: /generando|informe|comparando página/i,  stage: 'report'  },
+];
+
 function setStage(active) {
   const idx = STAGE_ORDER.indexOf(active);
   STAGE_ORDER.forEach((s, i) => {
     stages[s].classList.remove('active', 'done');
-    if (i < idx)       stages[s].classList.add('done');
+    if (i < idx)        stages[s].classList.add('done');
     else if (i === idx) stages[s].classList.add('active');
   });
+}
+
+function resetStages() {
+  STAGE_ORDER.forEach(s => stages[s].classList.remove('active', 'done'));
+}
+
+function detectStageFromMessage(msg) {
+  for (const { re, stage } of STAGE_PATTERNS) {
+    if (re.test(msg)) return stage;
+  }
+  return null;
+}
+
+// ── Progress bar helper ──
+// Clamps to [min, 95] so the bar never reaches 100% until truly done.
+function setProgress(pct, min = 5) {
+  const clamped = Math.min(95, Math.max(min, pct));
+  progressBar.style.width = clamped + '%';
+  progressBar.parentElement.setAttribute('aria-valuenow', clamped);
 }
 
 // ── Progress polling ──
@@ -150,28 +180,27 @@ function pollJobStatus(jobId) {
       }
 
       const progreso = job.progreso || {};
-      const pct = (progreso.actual != null && progreso.total > 0)
-        ? Math.round((progreso.actual / progreso.total) * 100)
-        : null;
 
-      if (pct !== null) {
-        progressBar.style.width = pct + '%';
-        progressBar.parentElement.setAttribute('aria-valuenow', pct);
+      // Progress bar: use actual/total when available, else hold at 10%
+      if (progreso.actual != null && progreso.total > 0) {
+        const pct = Math.round((progreso.actual / progreso.total) * 100);
+        setProgress(pct);
       }
 
       const msg = progreso.mensaje || 'Procesando...';
       progressMsg.textContent = msg;
 
-      // Map message keywords to visual stages
-      if      (/subiendo|upload/i.test(msg))     setStage('upload');
-      else if (/procesando|extrayendo/i.test(msg)) setStage('process');
-      else if (/buscando|web/i.test(msg))        setStage('search');
-      else if (/generando|informe/i.test(msg))   setStage('report');
+      // Map message to visual stage
+      const detected = detectStageFromMessage(msg);
+      if (detected) setStage(detected);
 
       if (job.status === 'completado') {
         clearInterval(interval);
-        setStage('report');
+        // Mark all stages done and fill bar to 100% before redirecting
         STAGE_ORDER.forEach(s => { stages[s].classList.remove('active'); stages[s].classList.add('done'); });
+        progressBar.style.width = '100%';
+        progressBar.parentElement.setAttribute('aria-valuenow', 100);
+        progressMsg.textContent = 'Informe generado. Redirigiendo...';
         window.location.href = `/report/${jobId}`;
       } else if (job.status === 'error') {
         clearInterval(interval);
@@ -193,8 +222,10 @@ form.addEventListener('submit', async e => {
   const err = validateFile(fileInput.files[0]);
   if (err) { showError(err); return; }
 
-  progressBar.style.width = '5%';
-  progressMsg.textContent = 'Iniciando...';
+  // Reset UI
+  resetStages();
+  setProgress(5);
+  progressMsg.textContent = 'Subiendo documento...';
   spinnerWrap.style.display = 'block';
   submitBtn.disabled = true;
   setStage('upload');
