@@ -212,6 +212,39 @@
         color: var(--text-muted);
       }
 
+      /* ── Fragments toggle button (issue #7) ── */
+      .btn-frags-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        background: rgba(99,102,241,0.08);
+        border: 1px solid rgba(99,102,241,0.22);
+        color: var(--accent-2);
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 0.38rem 0.85rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+        text-decoration: none;
+      }
+      .btn-frags-toggle:hover {
+        background: rgba(99,102,241,0.15);
+        border-color: rgba(99,102,241,0.4);
+        color: #fff;
+      }
+      .btn-frags-toggle:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .btn-frags-toggle .frag-chevron {
+        transition: transform 0.22s;
+        flex-shrink: 0;
+      }
+      .btn-frags-toggle[aria-expanded="true"] .frag-chevron {
+        transform: rotate(180deg);
+      }
+
       /* ── Phrase boxes ── */
       .phrase-box {
         background: rgba(0,0,0,0.18);
@@ -249,6 +282,25 @@
         color: var(--ok);
       }
 
+      /* ── Trust footer ── */
+      .trust-footer {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1.5rem;
+        padding: 2rem 1rem 1.5rem;
+        border-top: 1px solid var(--card-border);
+        margin-top: 1rem;
+      }
+      .trust-item {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+      .trust-item svg { color: var(--ok); flex-shrink: 0; }
+
       /* ── Misc ── */
       ::selection { background: var(--accent-glow); }
     </style>
@@ -258,14 +310,14 @@
       <!-- Navbar -->
       <nav class="topnav" aria-label="Navegación principal">
         <div class="container d-flex justify-content-between align-items-center">
-          <a href="/" class="brand">
+          <a href="/" class="brand" aria-label="Detector de Plagio, volver al inicio">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
             </svg>
             Detector de Plagio
           </a>
-          <a href="/" class="btn-new-analysis">
+          <a href="/" class="btn-new-analysis" aria-label="Volver a la página principal para un nuevo análisis">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Nuevo análisis
           </a>
@@ -293,7 +345,7 @@
                 Se detallan las páginas con fragmentos similares al documento analizado.
                 La similitud global es un promedio ponderado de las coincidencias encontradas.
               </p>
-              <a href="/api/report/pdf/{{ job_id }}" class="btn-download">
+              <a href="/api/report/pdf/{{ job_id }}" class="btn-download" aria-label="Descargar informe en PDF">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="7 10 12 15 17 10"/>
@@ -343,6 +395,7 @@
         <div class="d-flex flex-column gap-3">
           {% for r in job.resultado.resultados %}
           <article class="source-card p-4" aria-label="Fuente: {{ r.url }}">
+
             <!-- Header row -->
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
               <div style="flex:1;min-width:220px">
@@ -355,7 +408,7 @@
                   Consulta: <em>"{{ r.consulta }}"</em>
                 </div>
               </div>
-              <div>
+              <div class="d-flex flex-column align-items-end gap-2">
                 {% set sim = r.similitud %}
                 <span class="similarity-badge {% if sim >= 50 %}sim-high{% elif sim >= 20 %}sim-medium{% else %}sim-low{% endif %}">
                   {% if sim >= 50 %}
@@ -367,6 +420,13 @@
                   {% endif %}
                   {{ r.similitud }}%
                 </span>
+                {# Fragment counter chip (visible even when collapsed) #}
+                {% if r.frases_similares %}
+                <span style="font-size:0.72rem;color:var(--text-muted)">
+                  {{ r.frases_similares|length }}
+                  fragmento{{ 's' if r.frases_similares|length != 1 else '' }}
+                </span>
+                {% endif %}
               </div>
             </div>
 
@@ -389,33 +449,71 @@
               </div>
             </div>
 
-            <!-- Fragments -->
+            {# ── Fragments section — collapsed by default (issue #7) ── #}
             {% if r.frases_similares %}
-            <h3 class="fw-bold mb-3" style="font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em">Fragmentos detectados</h3>
-            <div class="d-flex flex-column gap-2">
-              {% for f in r.frases_similares %}
-              <div class="phrase-box">
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <div class="phrase-col-label">Texto original</div>
-                    <div style="font-size:0.88rem">{{ f.frase_original }}</div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="phrase-col-label">Coincidencia en web ({{ f.coincidencia }}%)</div>
-                    <div style="font-size:0.88rem">
-                      <mark>{{ f.frase_web | default('N/A') }}</mark>
+            <div class="mt-1">
+              <button
+                class="btn-frags-toggle"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#frags-{{ loop.index }}"
+                aria-expanded="false"
+                aria-controls="frags-{{ loop.index }}"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                {{ r.frases_similares|length }} fragmento{{ 's' if r.frases_similares|length != 1 else '' }} detectado{{ 's' if r.frases_similares|length != 1 else '' }}
+                <svg class="frag-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+
+              <div class="collapse mt-3" id="frags-{{ loop.index }}">
+                <h3 class="fw-bold mb-3" style="font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em">Fragmentos detectados</h3>
+                <div class="d-flex flex-column gap-2">
+                  {% for f in r.frases_similares %}
+                  <div class="phrase-box">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <div class="phrase-col-label">Texto original</div>
+                        <div style="font-size:0.88rem">{{ f.frase_original }}</div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="phrase-col-label">Coincidencia en web ({{ f.coincidencia }}%)</div>
+                        <div style="font-size:0.88rem">
+                          {% if f.frase_web and f.frase_web != 'N/A' %}
+                            <mark>{{ f.frase_web }}</mark>
+                          {% else %}
+                            <span style="color:var(--text-muted);font-style:italic">Fragmento no recuperado (timeout o bloqueo del sitio)</span>
+                          {% endif %}
+                        </div>
+                      </div>
                     </div>
                   </div>
+                  {% endfor %}
                 </div>
               </div>
-              {% endfor %}
             </div>
             {% endif %}
+
           </article>
           {% endfor %}
         </div>
         {% endif %}
       </div>
+
+      <!-- Trust footer (issue #5) -->
+      <footer class="trust-footer" aria-label="Garantías de privacidad">
+        <div class="trust-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Tus documentos no se almacenan
+        </div>
+        <div class="trust-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Procesamiento seguro
+        </div>
+        <div class="trust-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Resultados en pocos segundos
+        </div>
+      </footer>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -427,8 +525,16 @@
           const expanded = btn.getAttribute('aria-expanded') === 'true';
           btn.setAttribute('aria-expanded', String(!expanded));
           target.hidden = expanded;
-          btn.querySelector('.tech-toggle-text') && (btn.querySelector('.tech-toggle-text').textContent = expanded ? 'Ver métricas técnicas' : 'Ocultar métricas');
         });
+      });
+
+      // Sync aria-expanded on fragment toggle buttons with Bootstrap collapse events
+      document.querySelectorAll('.btn-frags-toggle').forEach(btn => {
+        const targetId = btn.getAttribute('data-bs-target').replace('#', '');
+        const collapseEl = document.getElementById(targetId);
+        if (!collapseEl) return;
+        collapseEl.addEventListener('show.bs.collapse', () => btn.setAttribute('aria-expanded', 'true'));
+        collapseEl.addEventListener('hide.bs.collapse', () => btn.setAttribute('aria-expanded', 'false'));
       });
     </script>
   </body>
