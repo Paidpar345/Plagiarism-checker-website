@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-bs-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,7 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <style>
-      :root {
+      /* ── Dark theme (default) ── */
+      :root, [data-theme="dark"] {
         --bg-1: #0f1729;
         --bg-2: #1a2340;
         --accent: #6366f1;
@@ -20,6 +21,29 @@
         --card-border: rgba(255,255,255,0.12);
         --ok: #34d399;
         --radius: 18px;
+        --grid-line: rgba(255,255,255,0.025);
+        --blob-1-bg: rgba(99,102,241,0.10);
+        --blob-2-bg: rgba(139,92,246,0.09);
+        --shadow-card: 0 24px 64px -24px rgba(0,0,0,0.55);
+      }
+
+      /* ── Light theme ── */
+      [data-theme="light"] {
+        --bg-1: #f0f2f8;
+        --bg-2: #e4e8f5;
+        --accent: #4f46e5;
+        --accent-2: #7c3aed;
+        --accent-glow: rgba(79,70,229,0.3);
+        --text-main: #1a2340;
+        --text-muted: #5a6380;
+        --card-bg: rgba(255,255,255,0.85);
+        --card-border: rgba(0,0,0,0.10);
+        --ok: #059669;
+        --radius: 18px;
+        --grid-line: rgba(0,0,0,0.04);
+        --blob-1-bg: rgba(99,102,241,0.05);
+        --blob-2-bg: rgba(139,92,246,0.04);
+        --shadow-card: 0 24px 64px -24px rgba(0,0,0,0.18);
       }
 
       *, *::before, *::after { box-sizing: border-box; }
@@ -34,22 +58,20 @@
         color: var(--text-main);
         min-height: 100vh;
         overflow-x: hidden;
+        transition: background-color 0.25s, color 0.25s;
       }
-
-      /* Decorative grid */
       body::before {
         content: "";
         position: fixed;
         inset: 0;
         background-image:
-          linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+          linear-gradient(var(--grid-line) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
         background-size: 48px 48px;
         pointer-events: none;
         z-index: 0;
       }
 
-      /* Decorative blobs */
       .blob {
         position: fixed;
         border-radius: 50%;
@@ -58,14 +80,41 @@
         z-index: 0;
         animation: blobFloat 8s ease-in-out infinite alternate;
       }
-      .blob-1 { width: 340px; height: 340px; background: rgba(99,102,241,0.10); top: -80px; left: -80px; animation-delay: 0s; }
-      .blob-2 { width: 260px; height: 260px; background: rgba(139,92,246,0.09); bottom: 60px; right: -60px; animation-delay: 3s; }
+      .blob-1 { width: 340px; height: 340px; background: var(--blob-1-bg); top: -80px; left: -80px; animation-delay: 0s; }
+      .blob-2 { width: 260px; height: 260px; background: var(--blob-2-bg); bottom: 60px; right: -60px; animation-delay: 3s; }
       @keyframes blobFloat {
         from { transform: translate(0,0) scale(1); }
         to   { transform: translate(18px,14px) scale(1.05); }
       }
 
       .page-content { position: relative; z-index: 1; }
+
+      /* ── Navbar ── */
+      .topnav {
+        display: flex;
+        justify-content: flex-end;
+        padding: 1rem;
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 10;
+      }
+      .btn-theme-toggle {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        color: var(--text-muted);
+        border-radius: 999px;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+        flex-shrink: 0;
+      }
+      .btn-theme-toggle:hover { color: var(--text-main); border-color: var(--accent); }
+      .btn-theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
       /* ── Hero ── */
       .hero {
@@ -99,7 +148,7 @@
       .hero h1 {
         font-weight: 800;
         font-size: clamp(1.9rem, 4vw, 2.8rem);
-        background: linear-gradient(135deg, #fff 20%, #b6c2f0 100%);
+        background: linear-gradient(135deg, var(--text-main) 20%, var(--text-muted) 100%);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
@@ -120,7 +169,7 @@
         border-radius: var(--radius);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        box-shadow: 0 24px 64px -24px rgba(0,0,0,0.55);
+        box-shadow: var(--shadow-card);
       }
 
       /* ── Upload zone ── */
@@ -147,25 +196,13 @@
         outline: 2px solid var(--accent);
         outline-offset: 2px;
       }
-      .upload-zone .uz-icon {
-        color: var(--accent-2);
-        margin-bottom: 0.7rem;
-        animation: floatIcon 3s ease-in-out infinite;
-      }
+      .upload-zone .uz-icon { color: var(--accent-2); margin-bottom: 0.7rem; animation: floatIcon 3s ease-in-out infinite; }
       @keyframes floatIcon {
         0%,100% { transform: translateY(0); }
         50%      { transform: translateY(-5px); }
       }
-      .upload-zone .uz-title {
-        font-weight: 600;
-        font-size: 1rem;
-        color: var(--text-main);
-      }
-      .upload-zone .uz-sub {
-        color: var(--text-muted);
-        font-size: 0.82rem;
-        margin-top: 3px;
-      }
+      .upload-zone .uz-title { font-weight: 600; font-size: 1rem; color: var(--text-main); }
+      .upload-zone .uz-sub   { color: var(--text-muted); font-size: 0.82rem; margin-top: 3px; }
       #document { display: none; }
 
       /* ── File info card ── */
@@ -197,28 +234,15 @@
       }
 
       /* ── Slider ── */
-      .slider-labels {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        margin-top: 4px;
-      }
+      .slider-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
       .form-range::-webkit-slider-thumb { background: var(--accent); }
       .form-range::-moz-range-thumb     { background: var(--accent); }
       .form-range::-webkit-slider-runnable-track { background: rgba(255,255,255,0.12); border-radius: 999px; }
       .form-range:focus { outline: none; }
-      .form-range:focus::-webkit-slider-thumb {
-        box-shadow: 0 0 0 3px var(--accent-glow);
-      }
+      .form-range:focus::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--accent-glow); }
 
-      /* ── Advanced options accordion ── */
-      .accordion-item-custom {
-        background: transparent;
-        border: 1px solid var(--card-border);
-        border-radius: 12px !important;
-        overflow: hidden;
-      }
+      /* ── Advanced accordion ── */
+      .accordion-item-custom { background: transparent; border: 1px solid var(--card-border); border-radius: 12px !important; overflow: hidden; }
       .accordion-button-custom {
         background: rgba(255,255,255,0.03);
         color: var(--text-muted);
@@ -237,21 +261,10 @@
       }
       .accordion-button-custom:hover { background: rgba(255,255,255,0.06); color: var(--text-main); }
       .accordion-button-custom[aria-expanded="true"] { color: var(--text-main); border-radius: 12px 12px 0 0; }
-      .accordion-button-custom .chevron {
-        margin-left: auto;
-        transition: transform 0.25s;
-      }
+      .accordion-button-custom .chevron { margin-left: auto; transition: transform 0.25s; }
       .accordion-button-custom[aria-expanded="true"] .chevron { transform: rotate(180deg); }
-      .accordion-body-custom {
-        padding: 1rem;
-        background: rgba(255,255,255,0.02);
-        border-top: 1px solid var(--card-border);
-      }
-      .form-label-custom {
-        color: var(--text-muted);
-        font-weight: 500;
-        font-size: 0.85rem;
-      }
+      .accordion-body-custom { padding: 1rem; background: rgba(255,255,255,0.02); border-top: 1px solid var(--card-border); }
+      .form-label-custom { color: var(--text-muted); font-weight: 500; font-size: 0.85rem; }
       .algo-select {
         background-color: rgba(255,255,255,0.05);
         border: 1px solid var(--card-border);
@@ -262,21 +275,11 @@
         width: 100%;
         transition: border-color 0.15s, box-shadow 0.15s;
       }
-      .algo-select:focus {
-        outline: none;
-        border-color: var(--accent);
-        box-shadow: 0 0 0 3px var(--accent-glow);
-        background-color: rgba(255,255,255,0.08);
-        color: var(--text-main);
-      }
+      .algo-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
       .algo-select option { background-color: var(--bg-2); color: var(--text-main); }
-      .algo-hint {
-        color: var(--text-muted);
-        font-size: 0.77rem;
-        margin-top: 0.4rem;
-      }
+      .algo-hint { color: var(--text-muted); font-size: 0.77rem; margin-top: 0.4rem; }
 
-      /* ── CTA button ── */
+      /* ── CTA ── */
       .btn-analyze {
         background: linear-gradient(135deg, var(--accent), var(--accent-2));
         border: none;
@@ -291,29 +294,16 @@
         justify-content: center;
         gap: 0.6rem;
         transition: transform 0.15s, box-shadow 0.15s;
-        box-shadow: 0 10px 36px -10px var(--accent-glow), 0 0 0 0 var(--accent-glow);
+        box-shadow: 0 10px 36px -10px var(--accent-glow);
         cursor: pointer;
       }
-      .btn-analyze:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 16px 40px -8px var(--accent-glow), 0 0 0 6px rgba(99,102,241,0.12);
-        color: #fff;
-      }
-      .btn-analyze:focus-visible {
-        outline: 2px solid var(--accent);
-        outline-offset: 3px;
-      }
+      .btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 16px 40px -8px var(--accent-glow); color: #fff; }
+      .btn-analyze:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
       .btn-analyze:disabled { opacity: 0.55; transform: none; cursor: not-allowed; box-shadow: none; }
-      .btn-analyze svg { flex-shrink: 0; }
 
       /* ── Progress ── */
       .progress-wrap { margin-top: 1.25rem; }
-      .progress-stages {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
-        gap: 4px;
-      }
+      .progress-stages { display: flex; justify-content: space-between; margin-bottom: 0.5rem; gap: 4px; }
       .stage {
         flex: 1;
         text-align: center;
@@ -326,16 +316,8 @@
         border: 1px solid transparent;
         transition: color 0.3s, background 0.3s, border-color 0.3s;
       }
-      .stage.active {
-        color: var(--accent-2);
-        background: rgba(139,92,246,0.12);
-        border-color: rgba(139,92,246,0.3);
-      }
-      .stage.done {
-        color: var(--ok);
-        background: rgba(52,211,153,0.08);
-        border-color: rgba(52,211,153,0.2);
-      }
+      .stage.active { color: var(--accent-2); background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.3); }
+      .stage.done   { color: var(--ok); background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.2); }
       .progress-custom {
         height: 8px;
         border-radius: 999px;
@@ -348,12 +330,7 @@
         border-radius: 999px;
         transition: width 0.4s ease;
       }
-      .progress-msg {
-        text-align: center;
-        font-size: 0.82rem;
-        color: var(--text-muted);
-        margin-top: 0.5rem;
-      }
+      .progress-msg { text-align: center; font-size: 0.82rem; color: var(--text-muted); margin-top: 0.5rem; }
 
       /* ── Error ── */
       .alert-custom {
@@ -368,22 +345,13 @@
         padding: 0.85rem 1rem;
       }
 
-      /* ── Footer ── */
-      .trust-footer {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 1.5rem;
-        padding: 2rem 1rem 1.25rem;
-      }
-      .trust-item {
-        display: flex;
-        align-items: center;
-        gap: 0.45rem;
-        font-size: 0.8rem;
-        color: var(--text-muted);
-      }
+      /* ── Trust footer ── */
+      .trust-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; padding: 2rem 1rem 1.25rem; }
+      .trust-item { display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; color: var(--text-muted); }
       .trust-item svg { color: var(--ok); flex-shrink: 0; }
+
+      /* ── Focus visible (issue #10) ── */
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
       /* ── Misc ── */
       .container-narrow { max-width: 620px !important; margin-inline: auto; }
@@ -395,6 +363,22 @@
     <div class="blob blob-2" aria-hidden="true"></div>
 
     <div class="page-content">
+      <!-- Theme toggle (issue #13) -->
+      <nav class="topnav" aria-label="Controles de tema">
+        <button
+          id="themeToggle"
+          class="btn-theme-toggle"
+          type="button"
+          aria-label="Cambiar a modo claro"
+          title="Cambiar tema"
+        >
+          <!-- Moon icon (shown in dark mode, click to go light) -->
+          <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </nav>
+
       <!-- Hero -->
       <header class="hero">
         <div class="badge-eyebrow" aria-hidden="true">
@@ -410,8 +394,15 @@
         <div class="glass-card p-4 p-md-5">
           <form id="scanForm" novalidate aria-label="Formulario de análisis de plagio">
 
-            <!-- Upload zone -->
-            <label class="upload-zone" id="uploadZone" for="document" aria-label="Zona de carga de archivo">
+            <!-- Upload zone (issue #10: aria-describedby) -->
+            <div id="uploadHint" class="visually-hidden">Formatos aceptados: PDF, DOCX, TXT. Tamaño máximo 15 MB.</div>
+            <label
+              class="upload-zone"
+              id="uploadZone"
+              for="document"
+              aria-label="Zona de carga de archivo"
+              aria-describedby="uploadHint"
+            >
               <div class="uz-icon" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
@@ -422,9 +413,18 @@
               <div class="uz-title">Arrastra tu documento aquí</div>
               <div class="uz-sub">o haz clic para seleccionarlo &nbsp;·&nbsp; PDF, DOCX o TXT &nbsp;·&nbsp; Máx. 15 MB</div>
             </label>
-            <input type="file" id="document" name="document" accept=".pdf,.docx,.txt" required aria-required="true" />
+            <input
+              type="file"
+              id="document"
+              name="document"
+              accept=".pdf,.docx,.txt"
+              required
+              aria-required="true"
+              aria-label="Seleccionar documento"
+              aria-describedby="uploadHint"
+            />
 
-            <!-- File info -->
+            <!-- File info (issue #10: role+aria-live already set) -->
             <div id="fileInfo" role="status" aria-live="polite">
               <span class="fi-icon" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -439,7 +439,7 @@
               <span class="fi-badge" id="fiBadge">LISTO</span>
             </div>
 
-            <!-- Advanced options (accordion) -->
+            <!-- Advanced accordion -->
             <div class="mt-4" id="advancedAccordion">
               <button
                 type="button"
@@ -448,36 +448,23 @@
                 aria-expanded="false"
                 aria-controls="advancedBody"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
                 Opciones avanzadas
-                <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
+                <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
-              <div
-                class="accordion-body-custom"
-                id="advancedBody"
-                role="region"
-                aria-labelledby="advancedToggle"
-                hidden
-              >
-                <!-- Threshold -->
+              <div class="accordion-body-custom" id="advancedBody" role="region" aria-labelledby="advancedToggle" hidden>
                 <div class="mb-4">
                   <label class="form-label-custom d-flex justify-content-between" for="umbral">
                     <span>Detectar coincidencias de al menos</span>
                     <strong style="color:var(--text-main)"><span id="umbralValue">5</span>%</strong>
                   </label>
-                  <input type="range" class="form-range" id="umbral" name="umbral" min="1" max="80" value="5" aria-valuemin="1" aria-valuemax="80" aria-valuenow="5" />
+                  <input type="range" class="form-range" id="umbral" name="umbral" min="1" max="80" value="5"
+                    aria-valuemin="1" aria-valuemax="80" aria-valuenow="5" />
                   <div class="slider-labels" aria-hidden="true">
                     <span>Más sensible</span>
                     <span>Menos sensible</span>
                   </div>
                 </div>
-
-                <!-- Algorithm -->
                 <div>
                   <label class="form-label-custom" for="algoritmo">Modo de análisis</label>
                   <select class="algo-select" id="algoritmo" name="algoritmo" aria-describedby="algoHint">
@@ -501,22 +488,25 @@
             </button>
           </form>
 
-          <!-- Progress -->
-          <div class="progress-wrap" id="spinnerWrap" style="display:none" aria-live="polite" aria-label="Estado del análisis">
+          <!-- Progress (issue #10: role+aria-valuenow on bar) -->
+          <div class="progress-wrap" id="spinnerWrap" style="display:none"
+               role="status" aria-live="polite" aria-label="Estado del análisis">
             <div class="progress-stages" id="progressStages" aria-hidden="true">
               <div class="stage" id="stage-upload">Subiendo</div>
               <div class="stage" id="stage-process">Procesando</div>
               <div class="stage" id="stage-search">Buscando</div>
               <div class="stage" id="stage-report">Generando informe</div>
             </div>
-            <div class="progress-custom" role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100">
-              <div class="bar" id="progressBar" style="width:5%"></div>
+            <div class="progress-custom">
+              <div class="bar" id="progressBar" style="width:5%"
+                   role="progressbar" aria-valuenow="5" aria-valuemin="0" aria-valuemax="100"
+                   aria-label="Progreso del análisis"></div>
             </div>
             <p class="progress-msg" id="progressMsg">Iniciando...</p>
           </div>
 
-          <!-- Error -->
-          <div id="errorBox" class="alert-custom mt-3 d-none" role="alert">
+          <!-- Error (issue #10: role=alert) -->
+          <div id="errorBox" class="alert-custom mt-3 d-none" role="alert" aria-live="assertive">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px">
               <circle cx="12" cy="12" r="10"/>
               <line x1="12" y1="8" x2="12" y2="12"/>
@@ -544,6 +534,7 @@
       </footer>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   </body>
 </html>

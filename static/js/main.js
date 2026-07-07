@@ -1,5 +1,13 @@
 // CSP: script lives in static/js/main.js (script-src 'self', no unsafe-inline)
 
+// ── Theme toggle (issue #13) ── runs before paint to avoid flash
+(function() {
+  var root  = document.documentElement;
+  var saved = localStorage.getItem('theme') || 'dark';
+  root.setAttribute('data-theme', saved);
+  root.setAttribute('data-bs-theme', saved);
+})();
+
 // ── DOM refs ──
 const form            = document.getElementById('scanForm');
 const spinnerWrap     = document.getElementById('spinnerWrap');
@@ -18,29 +26,58 @@ const fileInfo        = document.getElementById('fileInfo');
 const fiName          = document.getElementById('fiName');
 const fiMeta          = document.getElementById('fiMeta');
 const fiBadge         = document.getElementById('fiBadge');
+const themeToggle     = document.getElementById('themeToggle');
+const themeIcon       = document.getElementById('themeIcon');
 
-// Stages
-const stages = {
-  upload:  document.getElementById('stage-upload'),
-  process: document.getElementById('stage-process'),
-  search:  document.getElementById('stage-search'),
-  report:  document.getElementById('stage-report'),
-};
+const MOON_SVG = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+const SUN_SVG  = '<circle cx="12" cy="12" r="5"/>' +
+  '<line x1="12" y1="1" x2="12" y2="3"/>' +
+  '<line x1="12" y1="21" x2="12" y2="23"/>' +
+  '<line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>' +
+  '<line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>' +
+  '<line x1="1" y1="12" x2="3" y2="12"/>' +
+  '<line x1="21" y1="12" x2="23" y2="12"/>' +
+  '<line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>' +
+  '<line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+
+// Sync icon to current saved theme on load
+if (themeIcon) {
+  const current = localStorage.getItem('theme') || 'dark';
+  themeIcon.innerHTML = current === 'dark' ? MOON_SVG : SUN_SVG;
+}
+
+if (themeToggle) {
+  themeToggle.addEventListener('click', () => {
+    const root    = document.documentElement;
+    const current = root.getAttribute('data-theme') || 'dark';
+    const next    = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    root.setAttribute('data-bs-theme', next);
+    localStorage.setItem('theme', next);
+    if (themeIcon) themeIcon.innerHTML = next === 'dark' ? MOON_SVG : SUN_SVG;
+    themeToggle.setAttribute('aria-label',
+      next === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+  });
+}
 
 // ── Advanced accordion toggle ──
 const advancedToggle = document.getElementById('advancedToggle');
 const advancedBody   = document.getElementById('advancedBody');
-advancedToggle.addEventListener('click', () => {
-  const expanded = advancedToggle.getAttribute('aria-expanded') === 'true';
-  advancedToggle.setAttribute('aria-expanded', String(!expanded));
-  advancedBody.hidden = expanded;
-});
+if (advancedToggle && advancedBody) {
+  advancedToggle.addEventListener('click', () => {
+    const expanded = advancedToggle.getAttribute('aria-expanded') === 'true';
+    advancedToggle.setAttribute('aria-expanded', String(!expanded));
+    advancedBody.hidden = expanded;
+  });
+}
 
 // ── Umbral slider ──
-umbralInput.addEventListener('input', () => {
-  umbralValue.textContent = umbralInput.value;
-  umbralInput.setAttribute('aria-valuenow', umbralInput.value);
-});
+if (umbralInput) {
+  umbralInput.addEventListener('input', () => {
+    umbralValue.textContent = umbralInput.value;
+    umbralInput.setAttribute('aria-valuenow', umbralInput.value);
+  });
+}
 
 // ── Algorithm hints ──
 const ALGO_HINTS = {
@@ -49,9 +86,11 @@ const ALGO_HINTS = {
   ngramas:   'Preciso. Ideal para detectar frases reordenadas o parafraseadas.',
   shingling: 'Exhaustivo. Solo marca coincidencias de texto casi idéntico.',
 };
-algoritmoSelect.addEventListener('change', () => {
-  algoHint.textContent = ALGO_HINTS[algoritmoSelect.value] || '';
-});
+if (algoritmoSelect) {
+  algoritmoSelect.addEventListener('change', () => {
+    if (algoHint) algoHint.textContent = ALGO_HINTS[algoritmoSelect.value] || '';
+  });
+}
 
 // ── File validation ──
 const ALLOWED_EXT = ['pdf', 'docx', 'txt'];
@@ -85,32 +124,36 @@ function clearFileInfo() {
   fiMeta.textContent = '';
 }
 
-fileInput.addEventListener('change', () => {
-  if (!fileInput.files.length) { clearFileInfo(); return; }
-  const file = fileInput.files[0];
-  const err  = validateFile(file);
-  if (err) { showError(err); fileInput.value = ''; clearFileInfo(); return; }
-  clearError();
-  showFileInfo(file);
-});
+if (fileInput) {
+  fileInput.addEventListener('change', () => {
+    if (!fileInput.files.length) { clearFileInfo(); return; }
+    const file = fileInput.files[0];
+    const err  = validateFile(file);
+    if (err) { showError(err); fileInput.value = ''; clearFileInfo(); return; }
+    clearError();
+    showFileInfo(file);
+  });
+}
 
 // ── Drag & drop ──
-['dragover', 'dragleave', 'drop'].forEach(evt => {
-  uploadZone.addEventListener(evt, e => {
-    e.preventDefault();
-    if (evt === 'dragover')                     uploadZone.classList.add('dragover');
-    if (evt === 'dragleave' || evt === 'drop')  uploadZone.classList.remove('dragover');
+if (uploadZone) {
+  ['dragover', 'dragleave', 'drop'].forEach(evt => {
+    uploadZone.addEventListener(evt, e => {
+      e.preventDefault();
+      if (evt === 'dragover')                     uploadZone.classList.add('dragover');
+      if (evt === 'dragleave' || evt === 'drop')  uploadZone.classList.remove('dragover');
+    });
   });
-});
-uploadZone.addEventListener('drop', e => {
-  if (!e.dataTransfer.files.length) return;
-  const file = e.dataTransfer.files[0];
-  const err  = validateFile(file);
-  if (err) { showError(err); return; }
-  fileInput.files = e.dataTransfer.files;
-  clearError();
-  showFileInfo(file);
-});
+  uploadZone.addEventListener('drop', e => {
+    if (!e.dataTransfer.files.length) return;
+    const file = e.dataTransfer.files[0];
+    const err  = validateFile(file);
+    if (err) { showError(err); return; }
+    fileInput.files = e.dataTransfer.files;
+    clearError();
+    showFileInfo(file);
+  });
+}
 
 // ── Error helpers ──
 function showError(message) {
@@ -125,14 +168,47 @@ function clearError() {
 }
 
 // ── Stage helpers ──
+const stages = {
+  upload:  document.getElementById('stage-upload'),
+  process: document.getElementById('stage-process'),
+  search:  document.getElementById('stage-search'),
+  report:  document.getElementById('stage-report'),
+};
 const STAGE_ORDER = ['upload', 'process', 'search', 'report'];
+
+const STAGE_PATTERNS = [
+  { re: /subiendo|uploading/i,                       stage: 'upload'  },
+  { re: /procesando|extrayendo|frases clave/i,       stage: 'process' },
+  { re: /buscando|consulta|web|páginas encontradas/i, stage: 'search' },
+  { re: /generando|informe|comparando página/i,      stage: 'report'  },
+];
+
 function setStage(active) {
   const idx = STAGE_ORDER.indexOf(active);
   STAGE_ORDER.forEach((s, i) => {
+    if (!stages[s]) return;
     stages[s].classList.remove('active', 'done');
-    if (i < idx)       stages[s].classList.add('done');
+    if (i < idx)        stages[s].classList.add('done');
     else if (i === idx) stages[s].classList.add('active');
   });
+}
+
+function resetStages() {
+  STAGE_ORDER.forEach(s => { if (stages[s]) stages[s].classList.remove('active', 'done'); });
+}
+
+function detectStageFromMessage(msg) {
+  for (const { re, stage } of STAGE_PATTERNS) {
+    if (re.test(msg)) return stage;
+  }
+  return null;
+}
+
+// ── Progress bar helper ──
+function setProgress(pct, min = 5) {
+  const clamped = Math.min(95, Math.max(min, pct));
+  progressBar.style.width = clamped + '%';
+  progressBar.setAttribute('aria-valuenow', clamped);
 }
 
 // ── Progress polling ──
@@ -150,28 +226,23 @@ function pollJobStatus(jobId) {
       }
 
       const progreso = job.progreso || {};
-      const pct = (progreso.actual != null && progreso.total > 0)
-        ? Math.round((progreso.actual / progreso.total) * 100)
-        : null;
 
-      if (pct !== null) {
-        progressBar.style.width = pct + '%';
-        progressBar.parentElement.setAttribute('aria-valuenow', pct);
+      if (progreso.actual != null && progreso.total > 0) {
+        setProgress(Math.round((progreso.actual / progreso.total) * 100));
       }
 
       const msg = progreso.mensaje || 'Procesando...';
       progressMsg.textContent = msg;
 
-      // Map message keywords to visual stages
-      if      (/subiendo|upload/i.test(msg))     setStage('upload');
-      else if (/procesando|extrayendo/i.test(msg)) setStage('process');
-      else if (/buscando|web/i.test(msg))        setStage('search');
-      else if (/generando|informe/i.test(msg))   setStage('report');
+      const detected = detectStageFromMessage(msg);
+      if (detected) setStage(detected);
 
       if (job.status === 'completado') {
         clearInterval(interval);
-        setStage('report');
-        STAGE_ORDER.forEach(s => { stages[s].classList.remove('active'); stages[s].classList.add('done'); });
+        STAGE_ORDER.forEach(s => { if (stages[s]) { stages[s].classList.remove('active'); stages[s].classList.add('done'); } });
+        progressBar.style.width = '100%';
+        progressBar.setAttribute('aria-valuenow', 100);
+        progressMsg.textContent = 'Informe generado. Redirigiendo...';
         window.location.href = `/report/${jobId}`;
       } else if (job.status === 'error') {
         clearInterval(interval);
@@ -185,31 +256,34 @@ function pollJobStatus(jobId) {
 }
 
 // ── Form submit ──
-form.addEventListener('submit', async e => {
-  e.preventDefault();
-  clearError();
+if (form) {
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    clearError();
 
-  if (!fileInput.files.length) { showError('Selecciona un archivo antes de continuar.'); return; }
-  const err = validateFile(fileInput.files[0]);
-  if (err) { showError(err); return; }
+    if (!fileInput.files.length) { showError('Selecciona un archivo antes de continuar.'); return; }
+    const err = validateFile(fileInput.files[0]);
+    if (err) { showError(err); return; }
 
-  progressBar.style.width = '5%';
-  progressMsg.textContent = 'Iniciando...';
-  spinnerWrap.style.display = 'block';
-  submitBtn.disabled = true;
-  setStage('upload');
+    resetStages();
+    setProgress(5);
+    progressMsg.textContent = 'Subiendo documento...';
+    spinnerWrap.style.display = 'block';
+    submitBtn.disabled = true;
+    setStage('upload');
 
-  const formData = new FormData();
-  formData.append('document',  fileInput.files[0]);
-  formData.append('umbral',    umbralInput.value);
-  formData.append('algoritmo', algoritmoSelect.value);
+    const formData = new FormData();
+    formData.append('document',  fileInput.files[0]);
+    formData.append('umbral',    umbralInput.value);
+    formData.append('algoritmo', algoritmoSelect.value);
 
-  try {
-    const res  = await fetch('/api/scan', { method: 'POST', body: formData });
-    const data = await res.json();
-    if (!res.ok) { showError(data.error || 'No se pudo iniciar el análisis.'); return; }
-    pollJobStatus(data.job_id);
-  } catch (err) {
-    showError('No se pudo conectar con el servidor. Inténtalo de nuevo.');
-  }
-});
+    try {
+      const res  = await fetch('/api/scan', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) { showError(data.error || 'No se pudo iniciar el análisis.'); return; }
+      pollJobStatus(data.job_id);
+    } catch (err) {
+      showError('No se pudo conectar con el servidor. Inténtalo de nuevo.');
+    }
+  });
+}

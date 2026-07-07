@@ -223,6 +223,27 @@ def scan_status(job_id):
     return jsonify(job), 200
 
 
+def _report_context(job, job_id):
+    """Build extra template variables for report.html (issue #6).
+
+    Returns a dict with:
+    - total_fragmentos: total detected similar fragments across all sources
+    - nivel_riesgo: 'alto' | 'medio' | 'bajo' based on similitud_global
+    """
+    resultados = job.get("resultado", {}).get("resultados", [])
+    total_fragmentos = sum(
+        len(r.get("frases_similares") or []) for r in resultados
+    )
+    s = job.get("resultado", {}).get("similitud_global", 0) or 0
+    if s >= 50:
+        nivel_riesgo = "alto"
+    elif s >= 20:
+        nivel_riesgo = "medio"
+    else:
+        nivel_riesgo = "bajo"
+    return {"total_fragmentos": total_fragmentos, "nivel_riesgo": nivel_riesgo}
+
+
 @app.route("/report/<job_id>")
 def view_report(job_id):
     job, err = _authorize_job(job_id)
@@ -231,7 +252,14 @@ def view_report(job_id):
         return body.get_json().get("error", "Error"), code
     if job.get("status") != "completado":
         return "El analisis aun no esta listo o fallo.", 400
-    return render_template("report.html", job=job, job_id=job_id)
+    ctx = _report_context(job, job_id)
+    return render_template(
+        "report.html",
+        job=job,
+        job_id=job_id,
+        total_fragmentos=ctx["total_fragmentos"],
+        nivel_riesgo=ctx["nivel_riesgo"],
+    )
 
 
 @app.route("/api/report/pdf/<job_id>", methods=["GET"])
