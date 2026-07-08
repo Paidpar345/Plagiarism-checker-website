@@ -1,64 +1,33 @@
 import os
-import time
-import hashlib
 import json
-import tempfile
 import logging
+import redis
 
 logger = logging.getLogger("plagiarism_checker")
 
-CACHE_DIR = os.path.join(os.path.dirname(__file__), ".cache_scraped")
-os.makedirs(CACHE_DIR, exist_ok=True)
+# Reutilizamos la URL de Redis configurada en el entorno
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+# Conexión dedicada para la caché (usamos la db 2 de Redis para no colisionar con Celery)
+redis_client = redis.from_url(REDIS_URL, db=2)
+
 DEFAULT_TTL = 60 * 60 * 24  # 24 horas
-FAILED_TTL = 60 * 30  # 30 minutos para entradas "known-bad"
-
-
-def _cache_path(key):
-    h = hashlib.sha256(key.encode("utf-8")).hexdigest()
-    return os.path.join(CACHE_DIR, f"{h}.json")
-
 
 def cache_get(key):
-    path = _cache_path(key)
-    if not os.path.exists(path):
-        return None
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            payload = json.load(f)
-        if time.time() - payload["ts"] > payload.get("ttl", DEFAULT_TTL):
-            os.remove(path)
-            return None
-        return payload["value"]
-    except Exception:
-        return None
-
+        cached_data = redis_client.get(key)
+        if cached_data:
+            return json.loads(cached_data)
+    except Exception as e:
+        logger.warning("Error leyendo de Redis cache: %s", e)
+    return None
 
 def cache_set(key, value, ttl=DEFAULT_TTL):
-    # FIX (implementacion): escritura atomica via fichero temporal + os.replace.
-    # Antes se escribia directamente sobre el fichero final; con varios
-    # workers de Celery concurrentes, una lectura simultanea podia toparse
-    # con un JSON a medio escribir (corrupto) y fallar silenciosamente.
-    path = _cache_path(key)
     try:
-        fd, tmp_path = tempfile.mkstemp(dir=CACHE_DIR, suffix=".tmp")
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump({"ts": time.time(), "ttl": ttl, "value": value}, f)
-        os.replace(tmp_path, path)
+        # setex guarda el valor e impone el TTL de forma nativa y atómica
+        redis_client.setex(key, ttl, json.dumps(value))
     except Exception as e:
-        logger.warning("Error escribiendo cache: %s", e)
-
+        logger.warning("Error escribiendo en Redis cache: %s", e)
 
 def purge_expired_cache():
-    now = time.time()
-    for fname in os.listdir(CACHE_DIR):
-        path = os.path.join(CACHE_DIR, fname)
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                payload = json.load(f)
-            if now - payload["ts"] > payload.get("ttl", DEFAULT_TTL):
-                os.remove(path)
-        except Exception:
-            try:
-                os.remove(path)
-            except Exception:
-                pass
+    # Con Redis esto ya no es necesario; los elementos expiran automáticamente.
+    pass

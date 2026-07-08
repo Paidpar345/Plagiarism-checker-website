@@ -13,11 +13,7 @@ from storage import purge_old_jobs
 
 logger = logging.getLogger("plagiarism_checker")
 
-# ── Stage message constants (must match regex in static/js/main.js) ──────────
-# Stage 1 → /subiendo|upload/i
-# Stage 2 → /procesando|extrayendo/i
-# Stage 3 → /buscando|web/i  OR  /comparando corpus/i
-# Stage 4 → /generando|informe/i
+
 MSG_UPLOAD        = "Subiendo documento..."
 MSG_PROCESS       = "Procesando texto y extrayendo frases clave..."
 MSG_SEARCH        = "Buscando coincidencias en la web..."
@@ -69,6 +65,10 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
 
         # ── Stage 3: Buscando ────────────────────────────────────────────
         update_job_progress(job_id, MSG_SEARCH, 2, 4)
+
+        # AGREGAR ESTAS DOS LÍNEAS:
+        overall = 0.0
+        resultados_finales = []
 
         seen_urls = set()
         all_url_tasks = []
@@ -168,11 +168,10 @@ def run_plagiarism_scan(self, job_id, texto_documento, documento_nombre, umbral=
 
 @celery.task(bind=True, soft_time_limit=280, time_limit=300)
 def run_local_corpus_scan(self, job_id, texto_documento, documento_nombre,
-                          corpus_dir, corpus_filenames, umbral=5.0, algoritmo="combinado"):
+                          corpus_texts, umbral=5.0, algoritmo="combinado"):
     """
-    Pipeline de comparación local (issue #9).
-    Compara texto_documento contra cada archivo del corpus_dir.
-    Elimina corpus_dir al terminar (privacidad).
+    Pipeline de comparación local optimizado y distribuido.
+    corpus_texts: Lista de tuplas [(nombre_archivo, texto_contenido), ...] recibidas desde la app.
     """
     try:
         # ── Stage 1: Subiendo ─────────────────────────────────────────────
@@ -181,6 +180,9 @@ def run_local_corpus_scan(self, job_id, texto_documento, documento_nombre,
         # ── Stage 2: Procesando ──────────────────────────────────────────
         update_job_progress(job_id, MSG_PROCESS, 1, 4)
 
+        overall = 0.0
+        resultados_finales = []
+
         if not texto_documento or not texto_documento.strip():
             fail_job(job_id, "No se pudo extraer contenido legible del documento principal.")
             return
@@ -188,30 +190,20 @@ def run_local_corpus_scan(self, job_id, texto_documento, documento_nombre,
         # ── Stage 3: Comparando corpus ───────────────────────────────────
         update_job_progress(job_id, MSG_CORPUS, 2, 4)
 
-        corpus_texts = []
-        for filename in corpus_filenames:
-            filepath = os.path.join(corpus_dir, filename)
-            try:
-                texto = extract_text_from_path(filepath)
-                if texto and texto.strip():
-                    corpus_texts.append((filename, texto))
-            except Exception as e:
-                logger.warning("No se pudo leer archivo de corpus '%s': %s", filename, e)
-
-        # A PARTIR DE AQUÍ COMIENZA EL CÓDIGO COMPLETADO:
+        # Validamos si llegaron textos válidos desde Flask
         if not corpus_texts:
             complete_job(job_id, {
-            "similitud_global": overall,
-            "resultados": resultados_finales,
-            "documento": documento_nombre,
-            "texto_original": texto_documento  # <-- NUEVO: Guardar texto completo para la UI
+                "similitud_global": overall,
+                "resultados": resultados_finales,
+                "documento": documento_nombre,
+                "texto_original": texto_documento
             })
             return
 
         # ── Stage 4: Generando ───────────────────────────────────────────
         update_job_progress(job_id, MSG_GENERATE, 3, 4)
 
-        # Usamos la función optimizada compare_corpus del similarity_engine
+        # Usamos directamente la lista corpus_texts que ya tiene el formato esperado (nombre, texto)
         resultados_finales = compare_corpus(
             texto_documento, 
             corpus_texts, 
@@ -219,24 +211,15 @@ def run_local_corpus_scan(self, job_id, texto_documento, documento_nombre,
             algoritmo=algoritmo
         )
 
-        # Calculamos la media de similitud solo si hay resultados, de lo contrario 0.0
         overall = round(sum(r["similitud"] for r in resultados_finales) / len(resultados_finales), 2) if resultados_finales else 0.0
 
         complete_job(job_id, {
             "similitud_global": overall,
             "resultados": resultados_finales,
             "documento": documento_nombre,
-            "texto_original": texto_documento  # <-- NUEVO: Guardar texto completo para la UI
+            "texto_original": texto_documento
         })
 
     except Exception as e:
         logger.error("Error inesperado en tarea de corpus local %s: %s", job_id, e)
         fail_job(job_id, "Ocurrió un error inesperado durante la comparación con el corpus. Inténtalo de nuevo.")
-        
-    finally:
-        # Limpieza de privacidad obligatoria (Elimina corpus_dir al terminar)
-        if corpus_dir and os.path.exists(corpus_dir):
-            try:
-                shutil.rmtree(corpus_dir)
-            except Exception as e:
-                logger.error("No se pudo limpiar el directorio temporal de corpus '%s': %s", corpus_dir, e)

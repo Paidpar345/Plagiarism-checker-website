@@ -11,3 +11,5 @@ flask-limiter==3.8.0
 python-magic-bin==0.4.14; platform_system == "Windows"
 python-magic==0.4.27; platform_system != "Windows"
 matplotlib>=3.10
+torch>=2.0.0
+sentence-transformers>=2.2.2

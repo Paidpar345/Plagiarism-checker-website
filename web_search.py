@@ -9,6 +9,8 @@ from bs4 import BeautifulSoup
 from similarity_engine import STOP_WORDS
 from cache_utils import cache_get, cache_set
 from dotenv import load_dotenv
+import socket
+import ipaddress
 
 load_dotenv()
 
@@ -26,11 +28,7 @@ LOW_QUALITY_PATH_PATTERNS = re.compile(
     r"/(login|signin|signup|cart|checkout|search\?|tag/|category/page)", re.IGNORECASE
 )
 
-# FIX (seguridad): evita SSRF hacia infraestructura interna. La URL a
-# scrapear proviene de resultados de busqueda de terceros; antes se
-# reenviaba tal cual a la API de scraping sin comprobar que fuese una
-# direccion publica http/https (podria apuntar a IPs privadas si la API de
-# busqueda estuviese comprometida o devolviese resultados manipulados).
+
 _PRIVATE_HOST_RE = re.compile(
     r"^(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.|192\.168\.|0\.0\.0\.0|169\.254\.|::1)"
 )
@@ -49,18 +47,31 @@ def is_domain_allowed(url):
         parsed = urllib.parse.urlparse(url)
     except Exception:
         return False
+        
     if parsed.scheme not in ("http", "https"):
         return False
+        
     host = parsed.hostname or ""
-    if _PRIVATE_HOST_RE.match(host):
+    if not host:
         return False
+        
+    
+    try:
+        ip = socket.gethostbyname(host)
+        if ipaddress.ip_address(ip).is_private or ipaddress.ip_address(ip).is_loopback:
+            logger.warning("Intento SSRF bloqueado hacia IP interna: %s", ip)
+            return False
+    except Exception:
+        
+        return False
+
     domain = _domain_of(url)
-    if not domain:
-        return False
     if any(domain == d or domain.endswith("." + d) for d in BLOCKED_DOMAINS):
         return False
+        
     if LOW_QUALITY_PATH_PATTERNS.search(url):
         return False
+        
     return True
 
 
@@ -83,45 +94,55 @@ def extract_smart_queries(text, num_queries=5, randomize=True):
     if not text:
         return []
 
-    sentences = re.split(r"[.\n]", text)
+   
+    text_limpio = re.sub(r'(?<![.!?/:])\s*\n+\s*', ' ', text)
+    
+    
+    sentences = re.split(r"[.!?\n]+", text_limpio)
     candidate_phrases = []
 
     for sentence in sentences:
         words = [w for w in sentence.split() if w.strip()]
-        if not (5 <= len(words) <= 10):
-            for i in range(0, max(len(words) - 5, 0) + 1, 6):
-                chunk = words[i:i + 8]
-                if len(chunk) >= 5:
+        
+        # NUEVO: 3. Descartar oraciones basura (índices cortos, código fuente, puros números)
+        letras = sum(c.isalpha() for c in sentence)
+        if letras < 25 or len(words) < 6:
+            continue
+            
+        if not (6 <= len(words) <= 12):
+            for i in range(0, max(len(words) - 6, 0) + 1, 6):
+                chunk = words[i:i + 10]
+                if len(chunk) >= 6:
                     candidate_phrases.append(chunk)
         else:
             candidate_phrases.append(words)
 
     scored = []
     for words in candidate_phrases:
-        meaningful = [w for w in words if re.sub(r"[^\w]", "", w.lower()) not in STOP_WORDS]
+        # Calcular el valor de la frase ignorando las STOP_WORDS
+        meaningful = [w for w in words if re.sub(r"[^\w]", "", w.lower()) not in STOP_WORDS and not w.isnumeric()]
         score = len(meaningful)
+        # Solo queremos frases que tengan al menos 4 palabras clave reales
         if score >= 4:
             scored.append((score, " ".join(words).strip()))
 
     if not scored:
-        return [text[:100]] if text else []
+        return []
 
     if randomize:
         weights = [s for s, _ in scored]
         pool = [p for _, p in scored]
         k = min(num_queries, len(pool))
         chosen = []
-        weights_copy = weights[:]
-        pool_copy = pool[:]
         for _ in range(k):
-            total = sum(weights_copy)
+            total = sum(weights)
             r = random.uniform(0, total)
             upto = 0
-            for idx, w in enumerate(weights_copy):
+            for idx, w in enumerate(weights):
                 upto += w
                 if upto >= r:
-                    chosen.append(pool_copy.pop(idx))
-                    weights_copy.pop(idx)
+                    chosen.append(pool.pop(idx))
+                    weights.pop(idx)
                     break
         return chosen
 
@@ -149,11 +170,7 @@ def search_google(query, nb_results=5):
             organic = data.get("organic_results") or data.get("organic", [])
             urls = [r.get("url") or r.get("link") for r in organic if r.get("url") or r.get("link")]
             urls = [u for u in urls if is_domain_allowed(u)][:nb_results]
-            # FIX (seguridad/implementacion): solo se cachea un resultado
-            # positivo con el TTL largo. Un resultado vacio (posible fallo
-            # transitorio de la API, captcha, rate-limit) se cachea con
-            # FAILED_TTL (30 min) en vez de 6 horas, para no "congelar" un
-            # falso 0% de coincidencias durante horas.
+
             ttl = 60 * 60 * 6 if urls else FAILED_TTL
             cache_set(cache_key, urls, ttl=ttl)
             return urls
@@ -188,9 +205,7 @@ def scrape_and_clean_url(url):
             cache_set(cache_key, "", ttl=FAILED_TTL)
             return ""
 
-        # FIX (seguridad): limite de tamano de respuesta antes de parsear
-        # con BeautifulSoup, para mitigar HTML "bomba" (paginas gigantes
-        # disenadas para agotar CPU/memoria del worker al parsear).
+       
         raw_html = response.text
         if len(raw_html) > 5_000_000:
             raw_html = raw_html[:5_000_000]

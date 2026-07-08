@@ -28,6 +28,7 @@ celery.conf.update(
     worker_concurrency=int(os.environ.get("CELERY_CONCURRENCY", 2)),
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    broker_connection_retry_on_startup=True
 )
 
 celery.conf.beat_schedule = {

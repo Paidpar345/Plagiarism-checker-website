@@ -1,10 +1,9 @@
 <!doctype html>
-<html lang="es" data-bs-theme="dark" data-theme="dark">
+<html lang="es" data-bs-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Reporte de Similitud - {{ job.documento }}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <title>Reporte de Plagio - {{ job.documento }}</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
@@ -13,712 +12,133 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
-    <!-- FIX: Chart.js movido al final del body. NO ponerlo aquí en el head. -->
     <style>
-      /* ── Variables y Tema ── */
-      :root,
-      [data-bs-theme="dark"],
-      [data-theme="dark"] {
-        --bg-1: #0f1729;
-        --bg-2: #1a2340;
-        --accent: #6366f1;
-        --accent-2: #8b5cf6;
-        --text-main: #e8ecf7;
-        --text-muted: #9aa4c0;
-        --card-bg: rgba(255, 255, 255, 0.06);
-        --card-border: rgba(255, 255, 255, 0.12);
-        --ok: #34d399;
-        --warning: #fbbf24;
-        --danger: #f87171;
-        --radius: 18px;
-      }
-      [data-bs-theme="light"],
-      [data-theme="light"] {
-        --bg-1: #f0f2f8;
-        --bg-2: #e4e8f5;
-        --accent: #4f46e5;
-        --accent-2: #7c3aed;
-        --text-main: #1a2340;
-        --text-muted: #5a6380;
-        --card-bg: rgba(255, 255, 255, 0.85);
-        --card-border: rgba(0, 0, 0, 0.1);
-        --ok: #059669;
-        --warning: #d97706;
-        --danger: #dc2626;
-      }
-
       body {
+        background-color: #0f1729;
+        color: #e8ecf7;
         font-family: "Inter", sans-serif;
-        background-color: var(--bg-1);
-        color: var(--text-main);
-        min-height: 100vh;
       }
-
-      :focus-visible {
-        outline: 3px solid var(--accent);
-        outline-offset: 2px;
-      }
-
       .glass-card {
-        background: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: var(--radius);
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 18px;
+        padding: 2rem;
+        margin-top: 1.5rem;
       }
-
-      /* ── Score Ring ── */
-      .score-ring-container {
-        position: relative;
-        width: 120px;
-        height: 120px;
-        margin: 0 auto;
+      .riesgo-alto {
+        color: #f87171;
       }
-      .score-ring-bg {
-        fill: none;
-        stroke: var(--card-border);
-        stroke-width: 8;
+      .riesgo-medio {
+        color: #fbbf24;
       }
-      .score-ring {
-        fill: none;
-        stroke-width: 8;
-        stroke-linecap: round;
-        transform: rotate(-90deg);
-        transform-origin: 50% 50%;
-        transition: stroke-dasharray 1s ease-out;
+      .riesgo-bajo {
+        color: #34d399;
       }
-      .score-text {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 1.8rem;
-        font-weight: 800;
-        color: var(--text-main);
-      }
-
-      /* ── Stat Pills ── */
-      .stat-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--card-border);
-        border-radius: 999px;
-        padding: 0.5rem 1rem;
-        font-size: 0.85rem;
-        font-weight: 600;
-      }
-
-      /* ── Botones ── */
-      .btn-cta {
-        background: var(--accent);
-        color: white;
-        font-weight: 600;
-        border: none;
-        padding: 0.7rem 1.2rem;
-        border-radius: 12px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-      .btn-cta:hover {
-        background: var(--accent-2);
-        color: white;
-      }
-
-      /* FIX: btn-download tenía clase en el HTML pero sin CSS definido */
-      .btn-download {
-        background: var(--accent);
-        color: white;
-        font-weight: 600;
-        border: none;
-        padding: 0.7rem 1.2rem;
-        border-radius: 12px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-      .btn-download:hover {
-        background: var(--accent-2);
-        color: white;
-      }
-
-      /* ── Tabs ── */
-      .nav-tabs {
-        border-bottom: 1px solid var(--card-border);
-        margin-bottom: 1.5rem;
-      }
-      .nav-tabs .nav-link {
-        color: var(--text-muted);
-        font-weight: 600;
-        border: none;
-        border-bottom: 2px solid transparent;
-        background: transparent;
-        padding: 0.8rem 1.2rem;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      .nav-tabs .nav-link:hover {
-        color: var(--text-main);
-      }
-      .nav-tabs .nav-link.active {
-        color: var(--text-main);
-        border-bottom: 2px solid var(--accent);
-      }
-
-      /* ── Text Highlight ── */
-      mark {
-        background-color: rgba(248, 113, 113, 0.3);
-        color: inherit;
-        padding: 0.15rem 0;
-        border-radius: 4px;
-        border-bottom: 2px solid var(--danger);
-        cursor: help;
-      }
-
-      .trust-item {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        font-size: 0.8rem;
-        color: var(--text-muted);
-        margin-right: 1.5rem;
-      }
-      .trust-item svg {
-        color: var(--ok);
+      .match-box {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid #6366f1;
       }
     </style>
   </head>
   <body>
-    <!-- Navbar -->
-    <nav
-      class="p-3 d-flex justify-content-between align-items-center"
-      style="border-bottom: 1px solid var(--card-border)"
-    >
-      <h5 class="mb-0 fw-bold d-flex align-items-center gap-2">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="var(--accent)"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path
-            d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-          ></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
-        </svg>
-        Reporte de Similitud
-      </h5>
-      <a
-        href="/"
-        class="btn-cta"
-        aria-label="Volver a la página principal (Nuevo análisis)"
-      >
-        Nuevo análisis
-      </a>
-    </nav>
-
-    <div class="container py-4">
-      <!-- Encabezado y Resumen Global -->
-      <div class="glass-card text-center">
-        <h2 class="fw-bold mb-1">{{ job.documento }}</h2>
-        <p class="text-muted mb-4">
-          Análisis completado el {{ job.creado_en }}
-        </p>
-
-        <!-- Score Ring -->
-        <div
-          class="score-ring-container mb-3"
-          role="img"
-          aria-label="Similitud global: {{ job.resultado.similitud_global }}%"
-        >
-          <svg width="120" height="120" viewBox="0 0 120 120">
-            <circle class="score-ring-bg" cx="60" cy="60" r="54"></circle>
-            <circle
-              class="score-ring"
-              id="scoreRing"
-              cx="60"
-              cy="60"
-              r="54"
-              stroke="{% if job.resultado.similitud_global < 15 %}var(--ok){% elif job.resultado.similitud_global < 40 %}var(--warning){% else %}var(--danger){% endif %}"
-              stroke-dasharray="0, 339.29"
-            ></circle>
-          </svg>
-          <div class="score-text">{{ job.resultado.similitud_global }}%</div>
-        </div>
-
-        <!-- FIX: nivel_riesgo viene en minúsculas del backend, comparar en minúsculas y usar | capitalize al renderizar -->
-        <div class="d-flex justify-content-center gap-3 flex-wrap">
-          <div class="stat-pill">
-            <span
-              style="color: {% if nivel_riesgo == 'bajo' %}var(--ok){% elif nivel_riesgo == 'medio' %}var(--warning){% else %}var(--danger){% endif %}"
-              >⬤</span
-            >
-            Riesgo: {{ nivel_riesgo | capitalize | default('Desconocido') }}
-          </div>
-          <div class="stat-pill">
-            📚 Fuentes detectadas: {{ job.resultado.resultados | length }}
-          </div>
-          <div class="stat-pill">
-            🔍 Fragmentos coincidentes: {{ total_fragmentos | default(0) }}
-          </div>
-        </div>
-
-        <div class="mt-4">
+    <div class="container py-5">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="fw-bold">Resultados del Análisis</h1>
+        <div>
           <a
             href="/api/report/pdf/{{ job_id }}"
-            class="btn-download"
-            aria-label="Descargar informe en PDF"
+            class="btn btn-primary rounded-pill btn-sm me-2"
+            >Descargar PDF</a
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Descargar PDF
-          </a>
+          <a href="/" class="btn btn-outline-light rounded-pill btn-sm"
+            >← Nuevo Análisis</a
+          >
         </div>
       </div>
 
-      <!-- Sección de Gráficos -->
-      {% if job.resultado.resultados and job.resultado.resultados | length > 0
-      %}
-      <div class="row mb-4">
-        <div class="col-md-6 mb-3 mb-md-0">
-          <div class="glass-card h-100 d-flex flex-column align-items-center">
-            <h6 class="fw-bold mb-3">Distribución de Similitud</h6>
-            <!-- FIX: height explícita necesaria para que Chart.js con maintainAspectRatio:false no colapse a 0px -->
-            <div
-              style="
-                position: relative;
-                width: 100%;
-                max-width: 250px;
-                height: 250px;
-              "
+      <div class="row">
+        <div class="col-md-4">
+          <div class="glass-card text-center">
+            <h5 class="text-muted">Similitud Global</h5>
+            <h1
+              class="display-3 fw-bold {% if nivel_riesgo == 'alto' %} riesgo-alto {% elif nivel_riesgo == 'medio' %} riesgo-medio {% else %} riesgo-bajo {% endif %}"
             >
-              <canvas id="donutChart"></canvas>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="glass-card h-100 d-flex flex-column">
-            <h6 class="fw-bold mb-3">Top Fuentes (Nivel de coincidencia)</h6>
-            <div style="position: relative; width: 100%; height: 250px">
-              <canvas id="barChart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- Navegación por Pestañas -->
-      <ul class="nav nav-tabs mt-4" role="tablist">
-        <li class="nav-item" role="presentation">
-          <button
-            class="nav-link active"
-            id="tab-fuentes-btn"
-            data-bs-toggle="tab"
-            data-bs-target="#tabFuentes"
-            type="button"
-            role="tab"
-            aria-controls="tabFuentes"
-            aria-selected="true"
-          >
-            📋 Fuentes encontradas
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button
-            class="nav-link"
-            id="tab-texto-btn"
-            data-bs-toggle="tab"
-            data-bs-target="#tabTexto"
-            type="button"
-            role="tab"
-            aria-controls="tabTexto"
-            aria-selected="false"
-          >
-            📄 Vista de texto original
-          </button>
-        </li>
-      </ul>
-
-      <!-- Contenido de las Pestañas -->
-      <div class="tab-content">
-        <!-- PESTAÑA 1: Fuentes Encontradas -->
-        <div
-          class="tab-pane fade show active"
-          id="tabFuentes"
-          role="tabpanel"
-          aria-labelledby="tab-fuentes-btn"
-        >
-          {% if not job.resultado.resultados %}
-          <div class="glass-card text-center p-5">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="48"
-              height="48"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--ok)"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="mb-3"
-            >
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-            <h5 class="fw-bold">
-              No se encontraron coincidencias significativas
-            </h5>
-            <p class="text-muted">
-              El documento parece ser original en base a las fuentes
-              consultadas.
+              {{ job.resultado.similitud_global }}%
+            </h1>
+            <p class="mt-2 mb-0">
+              Riesgo: <strong class="text-uppercase">{{ nivel_riesgo }}</strong>
             </p>
+            <p class="text-muted small">
+              Fragmentos detectados: {{ total_fragmentos }}
+            </p>
+            <p class="text-muted small mt-3">Documento: {{ job.documento }}</p>
           </div>
-          {% else %}
-          <div class="d-flex flex-column gap-3">
-            {% for r in job.resultado.resultados %}
-            <article
-              class="glass-card mb-0 p-4"
-              aria-label="Fuente: {{ r.url }}"
-            >
-              <div
-                class="d-flex justify-content-between align-items-start mb-3"
-              >
-                <div>
-                  <h5 class="fw-bold mb-1 text-break">
-                    <a
-                      href="{{ r.url }}"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-decoration-none"
-                      style="color: var(--accent-2)"
-                    >
-                      {{ r.url }}
-                    </a>
-                  </h5>
-                  <span
-                    class="badge"
-                    style="
-                      background: rgba(248, 113, 113, 0.15);
-                      color: var(--danger);
-                      border: 1px solid rgba(248, 113, 113, 0.3);
-                    "
-                  >
-                    Similitud: {{ r.similitud }}%
-                  </span>
-                </div>
-              </div>
+        </div>
 
-              {% if r.frases_similares %}
-              <div class="mt-3">
-                <h6 class="fw-bold fs-6 mb-2">Fragmentos coincidentes:</h6>
-                <div class="table-responsive">
-                  <table
-                    class="table table-borderless table-sm mb-0"
-                    style="color: var(--text-muted); font-size: 0.9rem"
+        <div class="col-md-8">
+          <div class="glass-card">
+            <h4>Fuentes Detectadas</h4>
+            <hr />
+            {% if job.resultado.resultados|length > 0 %}
+            <div class="list-group list-group-flush bg-transparent">
+              {% for res in job.resultado.resultados %}
+              <div
+                class="list-group-item bg-transparent text-light border-secondary"
+              >
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1 text-break">
+                    <a href="{{ res.url }}" target="_blank" class="text-info"
+                      >{{ res.url }}</a
+                    >
+                  </h6>
+                  <span class="badge bg-primary rounded-pill h-100"
+                    >{{ res.similitud }}%</span
                   >
-                    <thead>
-                      <tr style="border-bottom: 1px solid var(--card-border)">
-                        <th class="py-2" style="color: var(--text-main)">
-                          Tu documento
-                        </th>
-                        <th class="py-2" style="color: var(--text-main)">
-                          Fuente externa
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for f in r.frases_similares %}
-                      <tr>
-                        <td class="py-2 pe-3" style="width: 50%">
-                          "...{{ f.frase_original }}..."
-                        </td>
-                        <td class="py-2" style="width: 50%">
-                          "...{{ f.frase_web }}..."
-                        </td>
-                      </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
                 </div>
+                <p class="mb-1 small text-muted">
+                  Métricas individuales: TF-IDF ({{ res.similitud_tfidf }}%) |
+                  N-gramas ({{ res.similitud_ngramas }}%)
+                </p>
               </div>
-              {% endif %}
-            </article>
-            {% endfor %}
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-success mt-3" role="alert">
+              ¡Excelente! No se encontraron coincidencias significativas. Tu
+              documento parece ser original.
+            </div>
+            {% endif %}
           </div>
+        </div>
+      </div>
+
+      {% if total_fragmentos > 0 %}
+      <div class="glass-card mt-4">
+        <h4 class="mb-4">Desglose de Fragmentos Similares</h4>
+        {% for res in job.resultado.resultados %} {% if
+        res.frases_similares|length > 0 %}
+        <h6 class="text-info mt-4 mb-3">Fuente: {{ res.url }}</h6>
+        {% for frase in res.frases_similares %}
+        <div class="match-box">
+          <div class="d-flex justify-content-between">
+            <strong>Texto de tu documento:</strong>
+            <span class="text-warning"
+              >{{ frase.coincidencia }}% similitud</span
+            >
+          </div>
+          <p class="fst-italic text-light mb-2">"{{ frase.frase_original }}"</p>
+
+          {% if frase.frase_web %}
+          <strong>Posible texto original (Web):</strong>
+          <p class="fst-italic text-muted mb-0">"{{ frase.frase_web }}"</p>
           {% endif %}
         </div>
-
-        <!-- PESTAÑA 2: Vista de Texto Original -->
-        <div
-          class="tab-pane fade"
-          id="tabTexto"
-          role="tabpanel"
-          aria-labelledby="tab-texto-btn"
-        >
-          <div class="glass-card">
-            <p class="text-muted small mb-3">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="me-1"
-              >
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-              </svg>
-              Las partes resaltadas en rojo indican coincidencias exactas o
-              parafraseadas con otras fuentes. Pasa el cursor sobre ellas para
-              ver el porcentaje.
-            </p>
-            <div
-              id="highlightedText"
-              style="
-                white-space: pre-wrap;
-                line-height: 1.8;
-                font-size: 0.95rem;
-                color: var(--text-main);
-              "
-            >
-              Cargando texto...
-            </div>
-          </div>
-        </div>
+        {% endfor %} {% endif %} {% endfor %}
       </div>
-
-      <!-- Trust Footer -->
-      <footer class="mt-5 text-center">
-        <div class="trust-item">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
-          Reporte privado y seguro
-        </div>
-        <div class="trust-item">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          Los documentos no se almacenan
-        </div>
-      </footer>
+      {% endif %}
     </div>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- FIX: Chart.js al final del body para que el DOM esté completamente renderizado -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-
-        // ── Animación Score Ring ──
-        // FIX: simplificado — filled es directamente la parte proporcional del arco
-        const ring = document.getElementById("scoreRing");
-        const score = {{ job.resultado.similitud_global | default(0) }};
-        const circumference = 2 * Math.PI * 54; // r=54 → ≈339.29
-        const filled = (score / 100) * circumference;
-        setTimeout(() => {
-          ring.style.strokeDasharray = `${filled}, ${circumference}`;
-        }, 100);
-
-        const resultados = {{ job.resultado.resultados | tojson | safe }};
-
-        // ── Gráficos con Chart.js ──
-        if (resultados && resultados.length > 0) {
-          // FIX: setTimeout(fn, 0) cede el hilo al browser para que Bootstrap
-          // termine de calcular el layout antes de que Chart.js mida los canvas.
-          // Sin esto, los canvas tienen width=0/height=0 y los charts no se pintan.
-          setTimeout(function () {
-            const bgColors = [
-              "rgba(248,113,113,0.8)",
-              "rgba(251,191,36,0.8)",
-              "rgba(52,211,153,0.8)",
-              "rgba(99,102,241,0.8)",
-            ];
-
-            // 1. Donut Chart (Similitud vs Originalidad)
-            const ctxDonut = document.getElementById("donutChart").getContext("2d");
-            new Chart(ctxDonut, {
-              type: "doughnut",
-              data: {
-                labels: ["Similitud", "Originalidad"],
-                datasets: [{
-                  data: [score, 100 - score],
-                  backgroundColor: ["rgba(248,113,113,0.8)", "rgba(52,211,153,0.8)"],
-                  borderWidth: 0,
-                }],
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { position: "bottom", labels: { color: "#9aa4c0" } },
-                },
-                cutout: "70%",
-              },
-            });
-
-            // 2. Bar Chart (Top 5 fuentes)
-            const sorted = [...resultados]
-              .sort((a, b) => b.similitud - a.similitud)
-              .slice(0, 5);
-            const ctxBar = document.getElementById("barChart").getContext("2d");
-            new Chart(ctxBar, {
-              type: "bar",
-              data: {
-                labels: sorted.map((r) => {
-                  try {
-                    return new URL(r.url).hostname.replace("www.", "");
-                  } catch (e) {
-                    // FIX: corpus:// no es una URL válida para new URL(), se maneja aquí
-                    return r.url.replace("corpus://", "").substring(0, 20) + "...";
-                  }
-                }),
-                datasets: [{
-                  label: "% Coincidencia",
-                  data: sorted.map((r) => r.similitud),
-                  backgroundColor: bgColors[0],
-                  borderRadius: 4,
-                }],
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: { color: "#9aa4c0" },
-                    grid: { color: "rgba(255,255,255,0.05)" },
-                  },
-                  x: {
-                    ticks: { color: "#9aa4c0", maxRotation: 45, minRotation: 45 },
-                    grid: { display: false },
-                  },
-                },
-              },
-            });
-          }, 0);
-        }
-
-        // ── Resaltado de Texto Original ──
-        const textoOriginal = {{ job.resultado.texto_original | tojson | safe }};
-        if (textoOriginal) {
-          let fragmentos = [];
-          resultados.forEach((r) => {
-            if (r.frases_similares) {
-              r.frases_similares.forEach((f) => {
-                if (f.offset_start !== undefined && f.offset_start !== -1) {
-                  fragmentos.push(f);
-                }
-              });
-            }
-          });
-
-          function escapeHtml(unsafe) {
-            return (unsafe || "")
-              .toString()
-              .replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;")
-              .replace(/"/g, "&quot;")
-              .replace(/'/g, "&#039;");
-          }
-
-          function buildHighlightedText(texto, frags) {
-            if (frags.length === 0) return escapeHtml(texto);
-            let resultado = "";
-            let cursor = 0;
-
-            frags.sort((a, b) => a.offset_start - b.offset_start);
-
-            // Unir fragmentos solapados para evitar etiquetas HTML anidadas rotas
-            let merged = [];
-            frags.forEach((f) => {
-              if (merged.length === 0) {
-                merged.push({ ...f });
-              } else {
-                let last = merged[merged.length - 1];
-                if (f.offset_start <= last.offset_end) {
-                  last.offset_end = Math.max(last.offset_end, f.offset_end);
-                  last.coincidencia = Math.max(last.coincidencia, f.coincidencia);
-                } else {
-                  merged.push({ ...f });
-                }
-              }
-            });
-
-            for (const f of merged) {
-              resultado += escapeHtml(texto.slice(cursor, f.offset_start));
-              resultado += `<mark title="Similitud: ~${f.coincidencia}%">${escapeHtml(
-                texto.slice(f.offset_start, f.offset_end)
-              )}</mark>`;
-              cursor = f.offset_end;
-            }
-            resultado += escapeHtml(texto.slice(cursor));
-            return resultado;
-          }
-
-          document.getElementById("highlightedText").innerHTML =
-            buildHighlightedText(textoOriginal, fragmentos);
-        } else {
-          document.getElementById("highlightedText").innerHTML =
-            "No se proporcionó el texto original para el resaltado.";
-        }
-      });
-    </script>
   </body>
 </html>

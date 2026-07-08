@@ -24,8 +24,7 @@ def init_db():
             )
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at)")
-        # FIX (implementacion): migracion suave para bases de datos ya
-        # existentes creadas con el esquema antiguo (sin owner_token).
+
         cols = [row["name"] for row in conn.execute("PRAGMA table_info(jobs)").fetchall()]
         if "owner_token" not in cols:
             conn.execute("ALTER TABLE jobs ADD COLUMN owner_token TEXT")
@@ -34,17 +33,20 @@ def init_db():
 
 @contextmanager
 def get_conn():
-    conn = sqlite3.connect(DB_PATH, timeout=10)
+    
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
     try:
+        # Activar el modo WAL para permitir lectura y escritura concurrentes sin bloqueos
+        conn.execute("PRAGMA journal_mode=WAL;")
         yield conn
     finally:
         conn.close()
 
 
 def create_job(documento, owner_token):
-    # FIX (seguridad - IDOR): se persiste el owner_token asociado al job
-    # para poder verificar mas tarde quien tiene permiso de consultarlo.
+
+
     job_id = str(uuid.uuid4())
     with get_conn() as conn:
         conn.execute(

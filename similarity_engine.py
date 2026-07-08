@@ -5,11 +5,12 @@ import unicodedata
 from collections import Counter
 
 # NUEVAS IMPORTACIONES PARA NLP
+from flask import logging
 import torch
 from sentence_transformers import SentenceTransformer, util
+import logging
 
-# Carga del modelo NLP en memoria (se hace una sola vez al iniciar el worker).
-nlp_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+_nlp_model = None
 
 STOP_WORDS = {
     "el", "la", "los", "las", "un", "una", "unos", "unas", "de", "del", "al", "y", "o",
@@ -31,7 +32,14 @@ def clean_and_tokenize(text):
         return []
     text = _strip_accents(text.lower())
     text = re.sub(r"[^\w\s]", " ", text)
-    return [w for w in text.split() if w and w not in STOP_WORDS]
+    
+    tokens = []
+    for w in text.split():
+        if w and w not in STOP_WORDS:
+            
+            if not w.isnumeric() and len(w) > 1:
+                tokens.append(w)
+    return tokens
 
 
 def get_ngrams(tokens, n):
@@ -53,6 +61,14 @@ def cosine_raw(vector_a, vector_b):
         return 0.0
     return dot_product / (mag_a * mag_b)
 
+def get_nlp_model():
+    """Carga el modelo en memoria RAM de forma perezosa solo cuando se necesita."""
+    global _nlp_model
+    if _nlp_model is None:
+        logger = logging.getLogger("plagiarism_checker")
+        logger.info("Cargando SentenceTransformer en memoria por primera vez...")
+        _nlp_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+    return _nlp_model
 
 def compute_idf(corpus_token_lists):
     n_docs = len(corpus_token_lists)
@@ -129,10 +145,15 @@ def semantic_similarity(text_a, text_b):
     """Calcula la similitud de significado entre dos textos usando Inteligencia Artificial."""
     if not text_a.strip() or not text_b.strip():
         return 0.0
-    embedding_a = nlp_model.encode(text_a, convert_to_tensor=True)
-    embedding_b = nlp_model.encode(text_b, convert_to_tensor=True)
+    embedding_a = get_nlp_model().encode(text_a, convert_to_tensor=True)
+    embedding_b = get_nlp_model().encode(text_b, convert_to_tensor=True)
     cosine_score = util.cos_sim(embedding_a, embedding_b)
-    return round(cosine_score.item() * 100, 2)
+    
+    
+    score = cosine_score.item()
+    if score < 0.15: 
+        return 0.0
+    return round(score * 100, 2)
 
 
 def _split_sentences(text):
@@ -161,7 +182,7 @@ def calculate_similarity_report(text_a, text_b, idf=None, top_n_matches=3, algor
         combined_score = shingle_score
     else:
         combined_score = round(
-            (semantic_score * 0.40) + (tfidf_score * 0.15) + (ngram_score * 0.25) + (shingle_score * 0.20), 2
+            (semantic_score * 0.15) + (tfidf_score * 0.20) + (ngram_score * 0.35) + (shingle_score * 0.30), 2
         )
 
     sentences_a = _split_sentences(text_a)
@@ -170,12 +191,12 @@ def calculate_similarity_report(text_a, text_b, idf=None, top_n_matches=3, algor
     matches = []
     if sentences_a and sentences_b:
         sample_b = sentences_b[:80]
-        embeddings_b = nlp_model.encode(sample_b, convert_to_tensor=True)
+        embeddings_b = get_nlp_model().encode(sample_b, convert_to_tensor=True)
         for sa in sentences_a[:80]:
             tokens_sa = clean_and_tokenize(sa)
             if not tokens_sa:
                 continue
-            emb_a = nlp_model.encode(sa, convert_to_tensor=True)
+            emb_a = get_nlp_model().encode(sa, convert_to_tensor=True)
             cos_scores = util.cos_sim(emb_a, embeddings_b)[0]
             best_idx = torch.argmax(cos_scores).item()
             best_score = cos_scores[best_idx].item()
@@ -245,16 +266,35 @@ def compare_corpus(doc_text, corpus_texts, umbral=5.0, algoritmo="combinado"):
 
 def build_highlighted_html(original_text, matches):
     import html as html_module
+    import re
+    
     escaped = html_module.escape(original_text)
     for m in matches:
         frase = m.get("frase_original", "")
         if not frase:
             continue
+            
         escaped_frase = html_module.escape(frase)
-        if escaped_frase in escaped:
-            escaped = escaped.replace(
-                escaped_frase,
-                f'<mark title="Coincidencia: {m.get("coincidencia", 0)}%">{escaped_frase}</mark>',
-                1
+        
+        # Generamos un patrón Regex que tolere múltiples espacios y saltos de línea
+        words = escaped_frase.split()
+        if not words:
+            continue
+            
+        # Unimos las palabras con \s+ para atrapar cualquier tipo de espacio en blanco intermedio
+        pattern_str = r'\s+'.join(re.escape(w) for w in words)
+        
+        try:
+            # Reemplazamos la coincidencia exacta tolerando espacios dinámicos. \g<0> preserva el texto original extraído.
+            escaped = re.sub(
+                pattern_str,
+                f'<mark title="Coincidencia: {m.get("coincidencia", 0)}%">\g<0></mark>',
+                escaped,
+                count=1,
+                flags=re.IGNORECASE
             )
+        except Exception:
+            
+            pass
+            
     return escaped.replace("\n", "<br>")

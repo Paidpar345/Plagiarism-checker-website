@@ -18,22 +18,17 @@ import shutil
 
 app = Flask(__name__)
 
-# FIX (seguridad): la secret_key ya no se genera aleatoriamente en cada
-# arranque (rompia las sesiones al reiniciar o al usar varios workers).
-# Debe fijarse via variable de entorno en produccion; en desarrollo se
-# genera una vez y se persiste en un fichero local para no perderla.
+
 _SECRET_KEY_ENV = os.environ.get("FLASK_SECRET_KEY")
-if _SECRET_KEY_ENV:
-    app.secret_key = _SECRET_KEY_ENV
-else:
-    _key_path = os.path.join(os.path.dirname(__file__), ".secret_key")
-    if os.path.exists(_key_path):
-        with open(_key_path, "r") as _f:
-            app.secret_key = _f.read().strip()
-    else:
-        app.secret_key = secrets.token_hex(32)
-        with open(_key_path, "w") as _f:
-            _f.write(app.secret_key)
+
+if not _SECRET_KEY_ENV:
+    # Evita que el servidor arranque de forma insegura y alerte al desarrollador.
+    raise RuntimeError(
+        "¡PELIGRO CRÍTICO! FLASK_SECRET_KEY no está configurada en las variables de entorno (.env). "
+        "El servidor no puede arrancar de forma segura sin esta clave."
+    )
+
+app.secret_key = _SECRET_KEY_ENV
 
 app.config["MAX_CONTENT_LENGTH"] = 15 * 1024 * 1024
 app.config["DEBUG"] = os.environ.get("FLASK_DEBUG", "0") == "1"
@@ -194,7 +189,7 @@ def scan_document():
         owner_token = _current_owner_token()
         job_id = create_job(safe_filename, owner_token)
 
-        # ── NUEVA RAMIFICACIÓN PARA EL CORPUS LOCAL ──
+       # ── NUEVA RAMIFICACIÓN PARA EL CORPUS LOCAL (DISTRIBUIDO) ──
         if scan_mode == "corpus":
             corpus_files = request.files.getlist("corpus_files")
             if not corpus_files or corpus_files[0].filename == "":
@@ -202,9 +197,8 @@ def scan_document():
             if len(corpus_files) > 10:
                 return jsonify({"error": "No puedes subir más de 10 archivos para el corpus."}), 400
 
-            # Crear directorio temporal único y seguro para este análisis
-            corpus_dir = tempfile.mkdtemp(prefix="corpus_scan_")
-            corpus_filenames = []
+            # Almacenaremos los textos directamente en memoria para enviarlos por Celery
+            corpus_texts_payload = []
 
             for c_file in corpus_files:
                 c_ext = c_file.filename.rsplit(".", 1)[-1].lower() if "." in c_file.filename else ""
@@ -215,21 +209,19 @@ def scan_document():
                     c_file.seek(0, os.SEEK_END)
                     c_size = c_file.tell()
                     c_file.seek(0)
-                    if c_size > 5 * 1024 * 1024: # Límite de 5MB por política de privacidad/rendimiento
+                    if c_size > 5 * 1024 * 1024:
                         raise ValueError(f"El archivo '{c_file.filename}' supera el límite de 5 MB.")
 
+                    # EXTRAER TEXTO DE INMEDIATO EN FLASK
+                    texto_extraido = process_uploaded_file(c_file)
                     safe_c_name = os.path.basename(c_file.filename)
-                    target_path = os.path.join(corpus_dir, safe_c_name)
-                    c_file.save(target_path)
-                    corpus_filenames.append(safe_c_name)
+                    corpus_texts_payload.append((safe_c_name, texto_extraido))
                 except ValueError as ve:
-                    # Si falla la validación de algún archivo del corpus, destruimos el temporal de inmediato
-                    shutil.rmtree(corpus_dir)
                     return jsonify({"error": f"Error en archivo de corpus: {str(ve)}"}), 400
 
-            # Encolar la tarea del corpus local creada en el paso anterior
+            # Encolar la tarea enviando directamente los textos extraídos en memoria
             from tasks import run_local_corpus_scan
-            run_local_corpus_scan.delay(job_id, texto_documento, safe_filename, corpus_dir, corpus_filenames, umbral, algoritmo)
+            run_local_corpus_scan.delay(job_id, texto_documento, safe_filename, corpus_texts_payload, umbral, algoritmo)
         
         else:
             # Encolar búsqueda tradicional en internet

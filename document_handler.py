@@ -24,13 +24,19 @@ def extract_text_from_docx(file_stream):
     try:
         doc = docx.Document(file_stream)
         paragraphs = []
+        char_count = 0  # NUEVO: Contador de caracteres
         for i, para in enumerate(doc.paragraphs):
             if i >= MAX_DOCX_PARAGRAPHS:
                 logger.warning("DOCX truncado: supera %s parrafos", MAX_DOCX_PARAGRAPHS)
                 break
-            if para.text.strip():
-                paragraphs.append(para.text)
-        return "\n".join(paragraphs)
+            text = para.text.strip()
+            if text:
+                paragraphs.append(text)
+                char_count += len(text)
+                # NUEVO: Detener la extracción tempranamente
+                if char_count >= MAX_CHARS:
+                    break
+        return "\n".join(paragraphs)[:MAX_CHARS]
     except Exception as e:
         logger.warning("Fallo al procesar DOCX: %s", e)
         raise ValueError("No se pudo procesar el archivo Word. Verifica que no este danado o protegido.")
@@ -39,6 +45,7 @@ def extract_text_from_docx(file_stream):
 def extract_text_from_pdf(file_stream):
     try:
         text_pages = []
+        char_count = 0  # NUEVO: Contador de caracteres
         with pdfplumber.open(file_stream) as pdf:
             if len(pdf.pages) > MAX_PDF_PAGES:
                 raise ValueError(f"El PDF supera el limite de {MAX_PDF_PAGES} paginas permitidas.")
@@ -46,17 +53,20 @@ def extract_text_from_pdf(file_stream):
                 page_text = page.extract_text(layout=False, use_text_flow=True)
                 if page_text:
                     text_pages.append(page_text)
+                    char_count += len(page_text)
+                    # NUEVO: Detener la extracción tempranamente
+                    if char_count >= MAX_CHARS:
+                        break
 
         if not text_pages:
             raise ValueError("El PDF parece estar vacio o contener solo imagenes escaneadas.")
 
-        return "\n".join(text_pages)
+        return "\n".join(text_pages)[:MAX_CHARS]
     except ValueError:
         raise
     except Exception as e:
         logger.warning("Fallo al procesar PDF: %s", e)
         raise ValueError("No se pudo procesar el archivo PDF. Verifica que no este danado o protegido.")
-
 
 def process_uploaded_file(file):
     if not file or file.filename == "":
